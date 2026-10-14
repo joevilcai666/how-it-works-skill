@@ -44,7 +44,8 @@ how-it-works-skill/
 ├── SECURITY.md
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
-├── plugin.json
+├── .codex-plugin/
+│   └── plugin.json
 ├── .claude-plugin/
 │   ├── plugin.json
 │   └── marketplace.json
