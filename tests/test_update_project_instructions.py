@@ -98,6 +98,20 @@ class ProjectSetupTests(unittest.TestCase):
                 self.assertTrue(updated.startswith(original))
                 self.assertIn((IMPORT_START + "\n@AGENTS.md\n" + IMPORT_END).encode(), updated)
 
+    def test_closed_fence_with_html_example_on_opener_keeps_active_import_idempotent(self):
+        for token in ("```", "~~~"):
+            with self.subTest(fence=token):
+                original = (token + "html <!-- example\n<p>Example</p>\n" + token + "\n@AGENTS.md\n").encode()
+                self.claude.write_bytes(original)
+                report = self.report(run_setup(self.root))
+                self.assertEqual(report["claude"], "unchanged")
+                before = self.agents.read_bytes()
+                repeated = self.report(run_setup(self.root))
+                self.assertEqual((repeated["agents"], repeated["claude"]), ("unchanged", "unchanged"))
+                self.assertEqual(self.agents.read_bytes(), before)
+                self.assertEqual(self.claude.read_bytes(), original)
+                self.assertEqual(self.claude.read_bytes().count(b"@AGENTS.md"), 1)
+
     def test_crlf_is_preserved_in_both_files(self):
         self.agents.write_bytes(b"# Existing\r\n\r\nKeep this.\r\n")
         self.claude.write_bytes(b"# Claude\r\nKeep this too.\r\n")

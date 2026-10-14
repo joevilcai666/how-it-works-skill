@@ -111,6 +111,11 @@ def _has_active_import(text: str) -> bool:
                 if token[0] == fence[0] and len(token) >= len(fence):
                     fence = None
             continue
+        if not comment:
+            opening = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+            if opening:
+                fence = opening.group(1)
+                continue
         visible = []
         cursor = 0
         while cursor < len(line):
