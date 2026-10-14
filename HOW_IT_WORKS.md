@@ -10,9 +10,9 @@ Public distribution remains `planned`. No official directory acceptance or publi
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `b8a5744` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 140 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
-| runtime verified | [Local client record](docs/verification/v0.1.0.md) on older candidate `25143ea` and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run. These trials do not verify this candidate's new behavior |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), candidate `dd734d0` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 140 root tests and 9 synthetic demo tests passed locally on candidate `dd734d0`, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
+| runtime verified | [Local client record](docs/verification/v0.1.0.md) on candidate `dd734d0`, 2026-10-14. Earlier synthetic comparison remains in [evaluations](evals/README.md) | Codex CLI loaded both skills, updated all three project instruction files, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 blocked a document run and model use of the imports |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
 Code is a recipe. A local test checks a prepared example.
@@ -178,7 +178,7 @@ python3 -m unittest discover -s demo/acorn-tasks/tests -v
 python3 scripts/check_repo.py
 ```
 
-The repository checker, both Agent Skills validators, and Claude strict validation passed locally on this candidate, 2026-10-14.
+The repository checker, both Agent Skills validators, and Claude strict validation passed locally on candidate `dd734d0`, 2026-10-14.
 It runs the root tests, manifest consistency checks, local Markdown links, Mermaid counts, fences, privacy scans, and Git whitespace checks.
 It also runs `skills-ref` and Claude strict validation when installed.
 It prints a skip when a validator is absent. A skip is not a validation pass.
@@ -213,14 +213,16 @@ The skill adds no telemetry or upload service. The client and third-party instal
 Privacy checks detect known patterns and image metadata. They cannot guarantee the absence of every sensitive fact.
 
 No cross-client document acceptance exists yet.
-Codex CLI 0.162.1 loaded both local skills and completed one synthetic document run in an isolated project.
+Codex CLI 0.162.1 loaded both local skills and completed one synthetic document run on candidate `dd734d0` in an isolated project.
 It passed six rubric checks. Its two diagrams failed the original case's three-diagram threshold.
 The request did not specify three diagrams, and the skill permits two to four.
 The document links resolved, but no Mermaid renderer was available.
 
 Claude Code 2.1.295 discovered both skills through the local plugin path.
 Its configured provider returned HTTP 401, so document execution and use of imported project instructions remain unverified.
-Separate updater checks preserved an existing `CLAUDE.md`, added one `@AGENTS.md` import, and kept repeated setup unchanged.
+Updater checks preserved `AGENTS.md`, root `CLAUDE.md`, and `.claude/CLAUDE.md`, with one correct relative import in each Claude file.
+Repeat runs left all three files unchanged. Ambiguous nested markup returned exit 2 before any file change.
+Fresh setup created `AGENTS.md` and left both Claude instruction locations absent.
 The generic `skills` installer 1.7.2 copied the main skill into an isolated project, with file equality and repeat-run setup checks.
 That installer has no model execution for this request. Its install result does not prove a separate generic client's document behavior.
 See the [commands, results, and evidence limits](docs/verification/v0.1.0.md).
@@ -231,7 +233,6 @@ Directory submission is not runtime-verified. No file or local test proves publi
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed package candidate: local safety fixes based on `b8a5744`. This record does not identify a published release.
-The client trial record retains its older candidate revision `25143ea`.
+Analyzed package candidate: `dd734d08e1a185a719a37a88038338609cd4140d`. This record does not identify a published release.
 
 Last reviewed: 2026-10-14
