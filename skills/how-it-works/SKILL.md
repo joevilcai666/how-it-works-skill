@@ -3,7 +3,7 @@ name: how-it-works
 description: Create or refresh a visual, evidence-aware HOW_IT_WORKS.md for a non-technical product owner. Use when someone asks how a codebase, product flow, agent loop, data flow, module, or user request works, or when product-visible behavior changed and the living explanation must be updated.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # How It Works

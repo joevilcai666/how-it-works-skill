@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import shutil
 import os
 import subprocess
@@ -75,6 +76,24 @@ class CheckRepoTests(unittest.TestCase):
         result = self.check()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("structure", result.stdout)
+
+    def test_missing_or_invalid_local_executor_declaration_fails(self):
+        for name, extension in (("plugin.json", True), (".codex-plugin/plugin.json", False)):
+            path = self.root / name
+            original = path.read_text()
+            for value in (None, False, "true"):
+                with self.subTest(name=name, value=value):
+                    manifest = json.loads(original)
+                    target = manifest["extensions"]["com.openai"] if extension else manifest
+                    if value is None:
+                        target.pop("requires_local_executor", None)
+                    else:
+                        target["requires_local_executor"] = value
+                    path.write_text(json.dumps(manifest) + "\n")
+                    result = self.check()
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("requires_local_executor", result.stdout)
+                    path.write_text(original)
 
     def test_invalid_skill_frontmatter_fails(self):
         (self.root / "skills/how-it-works/SKILL.md").write_text("# No frontmatter\n")

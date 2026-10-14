@@ -42,7 +42,8 @@ class SkillContractTests(unittest.TestCase):
                 self.assertIn("HOW_IT_WORKS.md", fields["description"])
                 self.assertLessEqual(len(fields["description"]), 1024)
                 self.assertEqual(fields["license"], "MIT")
-                self.assertRegex(match[1], r'metadata:\n  version: "0\.1\.0"')
+                version = (ROOT / "VERSION").read_text().strip()
+                self.assertRegex(match[1], r'metadata:\n  version: "' + re.escape(version) + '"')
 
     def test_main_skill_remains_a_compact_orchestration_layer(self):
         _, text = self.read_skill("how-it-works")

@@ -3,7 +3,7 @@ name: how-it-works-setup
 description: Install project-local HOW_IT_WORKS.md maintenance instructions. Use when someone asks to set up this skill, install its document maintenance rules, or prepare a project for its first HOW_IT_WORKS.md.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
 ---
 
 # How It Works Setup

@@ -1,6 +1,6 @@
 {
   "name": "how-it-works",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create and maintain a visual HOW_IT_WORKS.md for non-technical product owners from local code and evidence.",
   "author": {
     "name": "How It Works Contributors"

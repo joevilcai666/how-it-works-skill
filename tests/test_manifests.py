@@ -32,11 +32,12 @@ class ManifestTests(unittest.TestCase):
 
     def test_all_manifests_share_release_identity(self):
         version = (ROOT / "VERSION").read_text().strip()
-        self.assertEqual(version, "0.1.0")
+        self.assertEqual(version, "0.1.1")
+        portable = self.load_json("plugin.json")
         codex = self.load_json(".codex-plugin/plugin.json")
         claude = self.load_json(".claude-plugin/plugin.json")
         market = self.load_json(".claude-plugin/marketplace.json")
-        for manifest in (codex, claude):
+        for manifest in (portable, codex, claude):
             self.assertEqual(manifest["name"], "how-it-works")
             self.assertEqual(manifest["version"], version)
             self.assertEqual(manifest["repository"], REPOSITORY)
@@ -48,6 +49,14 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(market["plugins"][0]["name"], "how-it-works")
         self.assertEqual(market["plugins"][0]["version"], version)
         self.assertEqual(market["plugins"][0]["source"], "./")
+
+    def test_portable_manifest_requires_local_executor(self):
+        extension = self.load_json("plugin.json")["extensions"]["com.openai"]
+        self.assertIs(extension.get("requires_local_executor"), True)
+
+    def test_codex_manifest_requires_local_executor_at_top_level(self):
+        codex = self.load_json(".codex-plugin/plugin.json")
+        self.assertIs(codex.get("requires_local_executor"), True)
 
     def test_codex_overlay_repeats_openai_interface_and_onboarding(self):
         extension = self.load_json("plugin.json")["extensions"]["com.openai"]

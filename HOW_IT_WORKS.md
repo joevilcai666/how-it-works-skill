@@ -6,14 +6,16 @@ It runs through an AI client that can read the project and execute authorized lo
 ## Current status and evidence
 
 The shared workflow, project instruction updater, synthetic demo, and package checks exist.
+The current package is v0.1.1, a local candidate for the OpenAI desktop-only metadata fix.
+No v0.1.1 push, tag, release, submission, or publication exists.
 GitHub and release `v0.1.0` are public. Isolated public installs passed for Codex, Claude Code, and the generic installer.
 Official directories remain `planned`, with no submission or acceptance.
 The [distribution register](docs/distribution.md) records each channel and its remaining boundary.
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), candidate `dd734d0` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 140 root tests passed on release `071d6ca`. Nine synthetic demo tests passed on code candidate `dd734d0`, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), [privacy scanner](scripts/privacy_scan.py), and [local execution metadata](plugin.json), local v0.1.1 candidate | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 148 root tests and nine synthetic demo tests passed for the local v0.1.1 candidate. Public v0.1.0 evidence: 140 root tests passed on `071d6ca`. Nine demo tests passed on `dd734d0`, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check execution metadata, version parity, refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. They do not prove v0.1.1 client installation |
 | runtime verified | [Client record](docs/verification/v0.1.0.md), 2026-10-14. Local model trial: `dd734d0`. Public installs: release `071d6ca` | Codex saved a synthetic document. Public Codex and Claude installs enabled version 0.1.0. The generic installer copied matching main-skill files | Codex met 6 of 7 rubric checks. HTTP 401 blocked the Claude document run and model use of the imports. Public installs did not repeat model execution |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
@@ -25,12 +27,15 @@ One level does not automatically prove the next level.
 
 The client loads one shared skill, regardless of the install route.
 The main skill first runs project instruction setup, then directs repository investigation and document work.
+The local candidate also needs a client with authorized local execution.
 
 ```mermaid
 flowchart LR
   G[Public GitHub v0.1.0] --> A
   G --> B
   G --> C
+  L[Local v0.1.1 candidate] --> X[OpenAI desktop local execution]
+  X --> A
   A[Codex plugin or skill] --> S[Shared main skill]
   B[Claude Code plugin] --> S
   C[Npx install or manual skills copy] --> S
@@ -46,6 +51,12 @@ The portable manifest, Codex overlay, and Claude marketplace describe the same p
 They do not hold separate copies of the investigation workflow.
 The setup adapter only installs maintenance rules and hands document requests to the main skill.
 Python 3.9 or later is required for the updater. No hosted analysis service exists.
+The [OpenAI desktop-only guide](https://developers.openai.com/plugins/deploy/desktop-only) covers skills that call local programs, including this Python updater.
+Root `plugin.json` declares `requires_local_executor: true` under `extensions.com.openai`.
+The legacy `.codex-plugin/plugin.json` declares the same field at its top level.
+This flag is like a label on a power plug: it states the required execution environment.
+It does not grant file access or prove that a client installed the package.
+The package includes no MCP server or extra permissions.
 The main skill includes its own icons. A standalone skill copy does not need the repository's root assets.
 
 ## What happens on the first request
@@ -184,6 +195,8 @@ python3 scripts/check_repo.py
 ```
 
 The repository checker, both Agent Skills validators, and Claude strict validation passed locally on release `071d6ca`, 2026-10-14.
+The same checks and nine synthetic demo tests passed for the local v0.1.1 candidate on 2026-10-14.
+New tests cover both local execution declarations and version parity. The checker rejects missing, false, and non-boolean declarations.
 It runs the root tests, manifest consistency checks, local Markdown links, Mermaid counts, fences, privacy scans, and Git whitespace checks.
 It also runs `skills-ref` and Claude strict validation when installed.
 It prints a skip when a validator is absent. A skip is not a validation pass.
@@ -214,6 +227,7 @@ The agent must render diagrams when a renderer is available and report which che
 ## Limitations and distribution
 
 The package supplies agent instructions and a local updater. The client supplies repository access, model execution, tools, and permission controls.
+The v0.1.1 candidate has local package evidence only. No clean desktop installation, client model run, or portal acceptance exists for it.
 The skill adds no telemetry or upload service. The client and third-party installers retain their own data policies.
 Privacy checks detect known patterns and image metadata. They cannot guarantee the absence of every sensitive fact.
 
@@ -245,11 +259,11 @@ Directory submission, directory acceptance, and product-owner acceptance remain 
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Product-owner summary: The package now has a public GitHub release and three verified public install routes.
-skills.sh provides public discovery. Official directory entries and the social preview setting remain unverified.
-Claude document execution and product-owner acceptance still require separate evidence.
+Product-owner summary: The local v0.1.1 candidate declares the desktop execution requirement for its bundled Python updater.
+The public v0.1.0 release retains its installation evidence. The candidate's local checks do not prove desktop installation or directory acceptance.
+Claude document execution, the social preview setting, and product-owner acceptance still require separate evidence.
 
-Analyzed package release: `071d6ca2bf04f3af694de6343016e1e335c2bd76`, tag `v0.1.0`.
+Analyzed package: local v0.1.1 candidate. Public release evidence: `071d6ca2bf04f3af694de6343016e1e335c2bd76`, tag `v0.1.0`.
 Local model trial code: `dd734d08e1a185a719a37a88038338609cd4140d`.
 
 Last reviewed: 2026-10-14

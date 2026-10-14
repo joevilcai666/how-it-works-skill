@@ -49,6 +49,9 @@ def structure(files):
             if manifest.get("version") != version:
                 errors.append(name + ": version differs from VERSION")
         extension = portable["extensions"]["com.openai"]
+        for name, manifest in (("OpenAI extension", extension), ("Codex", codex)):
+            if manifest.get("requires_local_executor") is not True:
+                errors.append(name + ": requires_local_executor must be true")
         for field in ("interface", "onboardingSkill"):
             if codex.get(field) != extension[field]:
                 errors.append("Codex: inconsistent " + field)

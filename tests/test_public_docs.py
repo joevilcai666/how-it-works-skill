@@ -82,6 +82,17 @@ class PublicDocsTests(unittest.TestCase):
         text = self.read("docs/distribution.md")
         self.assert_distribution_table(text)
 
+    def test_patch_candidate_documents_local_execution_and_evidence_limits(self):
+        for name in ("HOW_IT_WORKS.md", "docs/distribution.md", "docs/releases/v0.1.1.md"):
+            with self.subTest(name=name):
+                text = self.read(name)
+                for value in ("v0.1.1", "local candidate", "requires_local_executor", "v0.1.0"):
+                    self.assertIn(value, text)
+                self.assertIn("https://developers.openai.com/plugins/deploy/desktop-only", text)
+                self.assertIn("No v0.1.1 push, tag, release, submission, or publication", text)
+        changelog = self.read("CHANGELOG.md")
+        self.assertLess(changelog.index("## 0.1.1"), changelog.index("## 0.1.0"))
+
     def assert_distribution_table(self, text):
         header = next(line for line in text.splitlines() if line.startswith("| Channel |"))
         for value in ("Status", "Source URL", "Permissions", "Release/tag", "SHA-256", "Update", "Removal", "Last policy review"):

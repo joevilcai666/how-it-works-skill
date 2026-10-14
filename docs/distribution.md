@@ -6,6 +6,16 @@ Public GitHub installs passed in isolated Codex, Claude Code, and generic instal
 No official directory submission or directory approval exists in this record.
 An install result does not prove a directory entry or a successful document run.
 
+## Local patch candidate
+
+v0.1.1 is a local candidate for the OpenAI desktop-only metadata fix.
+No v0.1.1 push, tag, release, submission, or publication exists.
+Its [release notes](releases/v0.1.1.md) describe the local package and evidence limits.
+Root `plugin.json` declares `requires_local_executor: true` under `extensions.com.openai`.
+The Codex overlay declares the field at its top level because the skills call a bundled local Python updater.
+The package adds no MCP server or permissions.
+The channel table and public installation evidence below still refer to v0.1.0.
+
 ## Immutable release identity
 
 - Release/tag: `v0.1.0`.
@@ -64,8 +74,8 @@ OpenAI's current official flow uses a ZIP upload at its submission portal.
 The UI attempt failed before an authenticated portal or a submission form opened.
 Developer identity, organization access, terms, automated package checks, and publication remain unverified.
 The [desktop-only guide](https://developers.openai.com/plugins/deploy/desktop-only) requires `requires_local_executor: true` for skills that require desktop execution.
-The tagged manifest does not declare that field. Directory eligibility remains unverified.
-Resolve any required metadata in a separately reviewed version. Do not change the released tag.
+The v0.1.0 tagged manifest does not declare that field. The local v0.1.1 candidate declares it in both required manifest locations.
+Directory eligibility and a clean desktop installation of v0.1.1 remain unverified. The released tag remains fixed.
 Do not mark this channel submitted from the existence of a ZIP.
 
 Anthropic's [current submission guide](https://clau.de/plugin-directory-submission) directs authors to the developer portal.
