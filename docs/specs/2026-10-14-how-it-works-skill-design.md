@@ -44,6 +44,7 @@ how-it-works-skill/
 ├── SECURITY.md
 ├── CONTRIBUTING.md
 ├── CHANGELOG.md
+├── plugin.json
 ├── .codex-plugin/
 │   └── plugin.json
 ├── .claude-plugin/
@@ -64,7 +65,7 @@ how-it-works-skill/
 └── .github/
 ```
 
-`skills/how-it-works/SKILL.md` is the only authoritative workflow. The setup skill is a small onboarding adapter. Plugin manifests and marketplace listings point to the shared skill instead of copying it.
+`skills/how-it-works/SKILL.md` is the only authoritative workflow. The setup skill is a small onboarding adapter. The root `plugin.json` is the canonical portable Agent Plugin manifest; `.codex-plugin/plugin.json` is the Codex compatibility layer. Plugin manifests and marketplace listings point to the shared skill instead of copying it.
 
 ## First-run instruction setup
 
