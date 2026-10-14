@@ -1,0 +1,40 @@
+name: Client compatibility
+description: Record installation, skill discovery, and document execution in a client.
+title: "[Compatibility] "
+labels: [compatibility]
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic inputs and redacted output. Mark each omitted stage as unverified. A package validator pass does not prove a successful client session."
+  - type: input
+    id: client
+    attributes:
+      label: Client and version
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system and Python version
+    validations:
+      required: true
+  - type: input
+    id: package
+    attributes:
+      label: Package version or commit
+    validations:
+      required: true
+  - type: textarea
+    id: install
+    attributes:
+      label: Install route and result
+      description: Include commands, exit codes, and skill discovery result. Omit private paths.
+    validations:
+      required: true
+  - type: textarea
+    id: document
+    attributes:
+      label: Synthetic prompt and document result
+      description: Record setup, saved output, language, diagrams, validation, and user review as separate stages.
+    validations:
+      required: true

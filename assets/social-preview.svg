@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#F4F7FC"/>
+  <rect x="64" y="52" width="32" height="32" rx="8" fill="#2563EB"/>
+  <path d="M73 61h14v5H78v8h9v5H73z" fill="#FFFFFF"/>
+  <g font-family="Arial, sans-serif">
+    <text x="112" y="78" font-size="24" font-weight="700" fill="#17233C">HOW IT WORKS</text>
+    <text x="64" y="144" font-size="44" font-weight="700" fill="#17233C">Your code works. Explain your product.</text>
+    <text x="64" y="180" font-size="21" fill="#52627B">One current map. Clear evidence. A place to investigate.</text>
+    <text x="64" y="225" font-size="14" font-weight="700" letter-spacing="2" fill="#52627B">BEFORE / SCATTERED SOURCES</text>
+    <text x="656" y="225" font-size="14" font-weight="700" letter-spacing="2" fill="#2563EB">AFTER / A PRODUCT EXPLANATION</text>
+  </g>
+  <rect x="64" y="242" width="428" height="302" rx="16" fill="#17233C"/>
+  <circle cx="86" cy="263" r="4" fill="#64748B"/>
+  <circle cx="101" cy="263" r="4" fill="#64748B"/>
+  <circle cx="116" cy="263" r="4" fill="#64748B"/>
+  <g font-family="monospace" font-size="15">
+    <text x="88" y="304" fill="#93C5FD">class AcornTasks:</text>
+    <text x="88" y="333" fill="#D9E5F5">  def submit(title):</text>
+    <text x="88" y="362" fill="#A9BCD6">    task = new_task(title)</text>
+    <text x="88" y="391" fill="#A9BCD6">    inbox.append(task)</text>
+    <text x="88" y="420" fill="#D9E5F5">    return task</text>
+    <text x="88" y="458" fill="#647D9F"># tests / notes / run records</text>
+  </g>
+  <rect x="88" y="485" width="172" height="7" rx="3" fill="#304565"/>
+  <rect x="88" y="502" width="240" height="7" rx="3" fill="#304565"/>
+  <path d="M525 390h80m-22-22 22 22-22 22" fill="none" stroke="#2563EB" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="656" y="242" width="560" height="302" rx="16" fill="#FFFFFF" stroke="#D9E2F0" stroke-width="2"/>
+  <g font-family="Arial, sans-serif">
+    <text x="680" y="278" font-size="21" font-weight="700" fill="#17233C">HOW_IT_WORKS.md</text>
+    <text x="680" y="305" font-size="15" fill="#52627B">Acorn Tasks · synthetic example</text>
+    <rect x="680" y="331" width="128" height="58" rx="8" fill="#EFF5FF" stroke="#B7CDF8"/>
+    <rect x="868" y="331" width="128" height="58" rx="8" fill="#2563EB"/>
+    <rect x="1056" y="331" width="136" height="58" rx="8" fill="#EFF5FF" stroke="#B7CDF8"/>
+    <text x="744" y="366" text-anchor="middle" font-size="17" font-weight="700" fill="#17233C">Request</text>
+    <text x="932" y="366" text-anchor="middle" font-size="17" font-weight="700" fill="#FFFFFF">Task inbox</text>
+    <text x="1124" y="366" text-anchor="middle" font-size="17" font-weight="700" fill="#17233C">Result</text>
+    <path d="M816 360h42m-9-7 9 7-9 7M1004 360h42m-9-7 9 7-9 7" fill="none" stroke="#2563EB" stroke-width="2.5"/>
+    <line x1="680" y1="415" x2="1192" y2="415" stroke="#D9E2F0"/>
+    <text x="680" y="443" font-size="15" font-weight="700" fill="#17233C">EVIDENCE</text>
+    <rect x="680" y="458" width="104" height="28" rx="14" fill="#EFF5FF"/>
+    <rect x="796" y="458" width="104" height="28" rx="14" fill="#EFF5FF"/>
+    <rect x="912" y="458" width="104" height="28" rx="14" fill="#F1F3F7"/>
+    <rect x="1028" y="458" width="164" height="28" rx="14" fill="#F1F3F7"/>
+    <text x="732" y="477" text-anchor="middle" font-size="13" fill="#2563EB">Code</text>
+    <text x="848" y="477" text-anchor="middle" font-size="13" fill="#2563EB">Local tests</text>
+    <text x="964" y="477" text-anchor="middle" font-size="13" fill="#52627B">Runtime</text>
+    <text x="1110" y="477" text-anchor="middle" font-size="13" fill="#52627B">User acceptance</text>
+    <text x="680" y="518" font-size="14" fill="#52627B">Each claim shows its source and its limit.</text>
+    <text x="64" y="596" font-size="17" font-weight="700" fill="#17233C">A living, visual explanation for product owners.</text>
+    <text x="1216" y="596" text-anchor="end" font-size="15" fill="#52627B">Codex · Claude Code · Agent Skills</text>
+  </g>
+</svg>

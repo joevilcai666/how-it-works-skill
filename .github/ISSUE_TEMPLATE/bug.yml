@@ -1,0 +1,36 @@
+name: Bug report
+description: Report an observable defect with a synthetic reproduction.
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic data only. Report vulnerabilities through SECURITY.md. Do not include private paths, credentials, messages, or repositories."
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+      description: Describe the user-visible result and the defect.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Include minimal steps, synthetic inputs, and commands.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Versions and environment
+      description: Include package commit or version, client version, operating system, and Python version.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence and limits
+      description: Include redacted command results. Separate local tests, actual execution, and user review.
+    validations:
+      required: true
