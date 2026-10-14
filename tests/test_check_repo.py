@@ -122,6 +122,21 @@ class CheckRepoTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("FAIL Git diff (staged)", result.stdout)
 
+    def test_subprocess_output_redacts_raw_and_serialized_windows_paths(self):
+        (self.root / "tests/test_smoke.py").write_text(
+            "import json\nimport unittest\nclass Smoke(unittest.TestCase):\n"
+            "    def test_output(self):\n"
+            "        path = chr(92).join(('C:', 'Users', 'private-person', 'project'))\n"
+            "        print(path)\n        print(repr(path))\n"
+            "        print(json.dumps(path))\n        print(json.dumps(json.dumps(path)))\n")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, "Output-redaction fixture failed checks")
+        raw = chr(92).join(("C:", "Users", "private-person", "project"))
+        output = result.stdout + result.stderr
+        self.assertIn("[REDACTED]", output)
+        self.assertFalse(any(raw.replace(chr(92), chr(92) * count) in output for count in (1, 2, 4)),
+                         "Subprocess output exposed a private fixture")
+
 
 if __name__ == "__main__":
     unittest.main()

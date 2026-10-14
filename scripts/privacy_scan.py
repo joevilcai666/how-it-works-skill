@@ -9,12 +9,14 @@ import re
 import struct
 import subprocess
 import sys
+from urllib.parse import urljoin, urlsplit
+import xml.etree.ElementTree as ET
 
 
 # No public contact address is approved for this release.
 PUBLIC_EMAIL_ALLOWLIST = frozenset()
 RULES = (
-    ("home-path", re.compile(r"(?:/(?:Users|home)/[A-Za-z0-9_.-]+(?:/[^\s\"'<>]*)?|[A-Za-z]:[\\/]Users[\\/][A-Za-z0-9_.-]+(?:[\\/][^\s\"'<>]*)?)")),
+    ("home-path", re.compile(r"(?:/(?:Users|home)/[A-Za-z0-9_.-]+(?:/[^\s\"'<>]*)?|[A-Za-z]:[\\/]+Users[\\/]+[A-Za-z0-9_.-]+(?:[\\/]+[^\s\"'<>]*)?)")),
     ("credential", re.compile(r"\b(?:sk-(?:proj-)?[A-Za-z0-9_-]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[A-Z0-9]{16}|xox[baprs]-[A-Za-z0-9-]{20,})\b")),
     ("credential", re.compile(r"(?i)\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password)\s*[=:]\s*[\"']?[A-Za-z0-9_+/.-]{16,}")),
     ("private-key", re.compile(r"-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----")),
@@ -62,7 +64,7 @@ def scan_text(text, path, commit=None, start_line=1):
         patterns = (
             ("svg-metadata", r"<\s*(?:[\w.-]+:)?metadata\b"),
             ("svg-embedded-image", r"data:image/[^\s\"']*;base64,"),
-            ("svg-external-image", r"<\s*(?:[\w.-]+:)?image\b[^>]*\b(?:[\w.-]+:)?href\s*=\s*[\"'](?:https?:|//|file:|/|[A-Za-z]:[\\/])"),
+            ("svg-external-image", r"<\s*(?:[\w.-]+:)?(?:image|feImage|use|script|mpath|textPath|tref)\b[^>]*\b(?:[\w.-]+:)?href\s*=\s*[\"'](?:https?:|//|file:|/|[A-Za-z]:[\\/])"),
         )
         for rule, pattern in patterns:
             # Decode character references before URL checks. No resource is fetched.
@@ -72,8 +74,55 @@ def scan_text(text, path, commit=None, start_line=1):
     return result
 
 
+def scan_svg(text, path, commit=None):
+    """Resolve resource references with inherited XML bases, without I/O."""
+    try:
+        root = ET.fromstring(text)
+    except (ET.ParseError, ValueError):
+        return [finding("svg-invalid", path, commit=commit)]
+    result = []
+    resources = {"image", "feimage", "use", "script", "mpath", "textpath", "tref"}
+
+    def external(reference, base):
+        resolved = urljoin(base, reference.strip())
+        parsed = urlsplit(resolved)
+        return (bool(parsed.scheme and parsed.scheme.lower() != "data") or bool(parsed.netloc)
+                or resolved.startswith("/"))
+
+    def visit(node, inherited_base):
+        base = urljoin(inherited_base, node.get("{http://www.w3.org/XML/1998/namespace}base", ""))
+        tag = node.tag.rsplit("}", 1)[-1].lower()
+        references = []
+        if tag in resources:
+            references.extend(value for key, value in node.attrib.items()
+                              if key.rsplit("}", 1)[-1].lower() == "href")
+        # CSS URLs can also load images, fonts, filters, and masks.
+        css_values = list(node.attrib.values())
+        if tag == "style":
+            css_values.append("".join(node.itertext()))
+        for value in css_values:
+            references.extend(match[1].strip().strip("\"'")
+                              for match in re.finditer(r"url\s*\(([^)]+)\)", value, re.IGNORECASE))
+        for reference in references:
+            if external(reference, base):
+                index = text.find(reference)
+                line = 1 + text.count("\n", 0, max(index, 0))
+                result.append(finding("svg-external-image", path, line, commit))
+        for child in node:
+            visit(child, base)
+
+    try:
+        visit(root, "")
+    except ValueError:
+        result.append(finding("svg-invalid", path, commit=commit))
+    return result
+
+
 def scan_bytes(data, path, commit=None):
-    result = scan_text(data.decode("utf-8", errors="replace"), path, commit)
+    text = data.decode("utf-8", errors="replace")
+    result = scan_text(text, path, commit)
+    if Path(path).suffix.lower() == ".svg" or re.match(r"\s*(?:<\?xml[^>]*>\s*)?<svg\b", text):
+        result.extend(scan_svg(text, path, commit))
     if data.startswith(PNG_SIGNATURE):
         offset = len(PNG_SIGNATURE)
         while offset < len(data):
@@ -117,13 +166,14 @@ def scan_history(root):
                 new_line += 1
             else:
                 old_line += 1
-    # Git patches omit binary PNG payloads. Inspect historical image objects too.
+    # Git patches omit binary payloads. Inspect every reachable blob by type,
+    # regardless of the displayed filename. PNG checks use the file signature.
     for entry in git(root, "rev-list", "--objects", "--all").decode("utf-8", errors="replace").splitlines():
         object_id, _, name = entry.partition(" ")
-        if Path(name).suffix.lower() not in (".png", ".svg"):
+        if git(root, "cat-file", "-t", object_id).strip() != b"blob":
             continue
         data = git(root, "cat-file", "blob", object_id)
-        result.extend(scan_bytes(data, name, object_id))
+        result.extend(scan_bytes(data, name or "[history blob]", object_id))
     return result
 
 

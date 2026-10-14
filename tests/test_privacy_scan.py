@@ -197,6 +197,101 @@ class PrivacyScanTests(unittest.TestCase):
         self.assertTrue(any(item["rule"] == "svg-external-image" and item.get("commit")
                             for item in findings))
 
+    def test_deleted_nul_containing_markdown_credential_fails_history(self):
+        secret = "sk" + "-" + "j" * 32
+        (self.root / "binary.md").write_bytes(b"Synthetic\0" + secret.encode())
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic binary")
+        (self.root / "binary.md").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove binary")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertTrue(any(item["rule"] == "credential" and item.get("commit")
+                            for item in findings))
+        self.assertFalse(secret in result.stdout + result.stderr, "Scanner exposed a private fixture")
+
+    def test_deleted_png_with_non_image_filename_fails_history(self):
+        data = bytes((137, 80, 78, 71, 13, 10, 26, 10)) + png_chunk(b"tEXt", b"private") + png_chunk(b"IEND", b"")
+        (self.root / "image.png").write_bytes(data)
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic image")
+        git(self.root, "mv", "image.png", "asset.dat")
+        git(self.root, "commit", "-qm", "rename image")
+        (self.root / "asset.dat").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove asset")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertTrue(any(item["rule"] == "png-metadata" and item.get("commit")
+                            for item in findings))
+
+    def test_image_like_directory_names_pass_history(self):
+        for name in ("figures.png", "figures.svg"):
+            (self.root / name).mkdir()
+            (self.root / name / "notes.md").write_text("Synthetic diagram notes\n")
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic directories")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 0, "Image-like directory caused scan failure")
+        self.assertEqual(findings, [])
+
+    def test_svg_resource_elements_and_inherited_base_fail_current_and_history(self):
+        base = "https" + "://" + "example.invalid" + "/assets/"
+        image = base + "filter.png"
+        sprite = base + "sprite.svg#part"
+        documents = [
+            '<svg><filter><feImage href="' + image + '"/></filter></svg>',
+            '<svg xml:base="' + base + '"><g><image href="relative.png"/></g></svg>',
+            '<svg><g xml:base="' + base + '"><g xml:base="nested/"><feImage href="relative.png"/></g></g></svg>',
+            '<svg><use href="' + sprite + '"/></svg>',
+            '<svg xmlns:xlink="http://www.w3.org/1999/xlink"><feImage xlink:href="' + image + '"/></svg>',
+            '<svg><script href="' + base + 'external.js"/></svg>',
+            '<svg xml:base="' + base + '"><rect fill="url(relative.svg#paint)"/></svg>',
+        ]
+        for index, document in enumerate(documents):
+            name = "resource-" + str(index) + ".svg"
+            (self.root / name).write_text(document)
+            result, findings = self.scan()
+            self.assertEqual(result.returncode, 1, "External SVG resource passed current scan")
+            self.assertTrue(any(item["rule"] == "svg-external-image" and item["path"] == name
+                                for item in findings), "No finding for external SVG resource")
+            git(self.root, "add", name)
+            git(self.root, "commit", "-qm", "synthetic SVG resource")
+            (self.root / name).unlink()
+            git(self.root, "add", "-u")
+            git(self.root, "commit", "-qm", "remove SVG resource")
+            result, findings = self.scan(history=True)
+            self.assertEqual(result.returncode, 1, "External SVG resource passed history scan")
+            self.assertTrue(any(item["rule"] == "svg-external-image" and item["path"] == name
+                                and item.get("commit") for item in findings))
+
+    def test_local_svg_resources_and_local_base_pass(self):
+        (self.root / "local.svg").write_text('<svg xml:base="assets/"><use href="#part"/><image href="relative.png"/></svg>')
+        result, findings = self.scan()
+        self.assertEqual(result.returncode, 0, "Local SVG resource caused scan failure")
+        self.assertEqual(findings, [])
+
+    def test_windows_home_paths_raw_and_serialized_fail_without_exposure(self):
+        raw = chr(92).join(("C:", "Users", "private-person", "project"))
+        for value in (raw, raw.replace(chr(92), chr(92) * 2), raw.replace(chr(92), chr(92) * 4)):
+            (self.root / "unsafe.md").write_text(value)
+            result, findings = self.scan()
+            self.assertEqual(result.returncode, 1, "Windows home path passed scan")
+            self.assertTrue(any(item["rule"] == "home-path" for item in findings))
+            self.assertFalse(value in result.stdout + result.stderr, "Scanner exposed a private fixture")
+
+    def test_redact_removes_raw_and_serialized_windows_home_paths(self):
+        raw = chr(92).join(("C:", "Users", "private-person", "project"))
+        values = (raw, repr(raw), json.dumps(raw), json.dumps(json.dumps(raw)))
+        code = "import sys; sys.path.insert(0, sys.argv[1]); from privacy_scan import redact; print(redact(sys.stdin.read()))"
+        result = subprocess.run([sys.executable, "-c", code, str(SCANNER.parent)],
+                                input="\n".join(values), text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("[REDACTED]", result.stdout)
+        self.assertFalse(any(value in result.stdout + result.stderr for value in values),
+                         "Redaction exposed a private fixture")
+
 
 if __name__ == "__main__":
     unittest.main()
