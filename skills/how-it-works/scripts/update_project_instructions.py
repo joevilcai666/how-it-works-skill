@@ -45,23 +45,30 @@ def find_project_root(start: Path) -> Path:
     raise UnsafeProjectError("No Git root found. Supply --project-root explicitly.")
 
 
-def _container_content(line: str) -> str:
-    """Remove quote/list syntax without consuming indentation for code."""
+def _container_context(line: str) -> tuple[str, int, bool, int]:
+    """Return content, quote depth, list opening, and list content margin."""
     content = line.expandtabs(4)
+    quote_depth = 0
+    new_item = False
+    list_indent = 0
     while True:
         quote = re.match(r"^ {0,3}> ?", content)
         if quote:
+            quote_depth += 1
+            list_indent = 0
             content = content[quote.end():]
             continue
         item = re.match(r"^ {0,3}(?:[-+*]|\d+[.)])( +)", content)
         if item:
+            new_item = True
             # Markdown list padding consumes one to four spaces. Five or
             # more spaces leave indented code after one padding space.
             spaces = item[1]
             padding = len(spaces) if len(spaces) <= 4 else 1
+            list_indent += item.start(1) + padding
             content = content[item.start(1) + padding:]
             continue
-        return content
+        return content, quote_depth, new_item, list_indent
 
 
 def _markdown_lines(text: str):
@@ -69,27 +76,48 @@ def _markdown_lines(text: str):
     fence = None
     comment = False
     inline_until = 0
+    paragraph = False
+    paragraph_quote_depth = 0
+    list_indent = 0
     offset = 0
     for raw in text.splitlines(keepends=True):
         line = raw.rstrip("\r\n")
         # Container prefixes cannot make marker ownership top-level. They can
         # still introduce fences whose contents must not supply active imports.
-        content = _container_content(line)
+        content, quote_depth, new_item, new_list_indent = _container_context(line)
+        if quote_depth != paragraph_quote_depth:
+            list_indent = 0
+        if new_item:
+            list_indent = new_list_indent
+        elif list_indent:
+            indentation = len(content) - len(content.lstrip(" "))
+            if indentation >= list_indent:
+                # A continuation carries the existing list margin without a
+                # fresh marker. Only the indentation inside that item counts.
+                content = content[list_indent:]
+            elif content.strip() and (not paragraph or re.match(r"^ {0,3}(?:#|<|`{3,}|~{3,})", content)):
+                list_indent = 0
+        if quote_depth != paragraph_quote_depth or new_item or not content.strip():
+            paragraph = False
+        paragraph_quote_depth = quote_depth
         if inline_until > offset and inline_until >= offset + len(line):
             yield offset, ""
         elif fence is not None:
+            paragraph = False
             closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", content)
             if closing and closing[1][0] == fence[0] and len(closing[1]) >= len(fence):
                 fence = None
             yield offset, ""
-        elif not comment and inline_until <= offset and content.startswith("    "):
+        elif not comment and inline_until <= offset and content.startswith("    ") and not paragraph:
             yield offset, ""
         elif not comment and inline_until <= offset and re.match(r"^ {0,3}(`{3,}|~{3,})", content):
             fence = re.match(r"^ {0,3}(`{3,}|~{3,})", content)[1]
+            paragraph = False
             yield offset, ""
         elif not comment and inline_until <= offset and line.rstrip(" \t") in MARKERS:
             # An owned delimiter is itself an HTML comment. Keep only exact,
             # standalone, top-level delimiters visible to the marker parser.
+            paragraph = False
             yield offset, line
         else:
             visible = []
@@ -120,7 +148,13 @@ def _markdown_lines(text: str):
                 else:
                     visible.append(line[cursor])
                     cursor += 1
-            yield offset, "".join(visible)
+            active = "".join(visible)
+            # Indented code cannot interrupt a paragraph. Keep this state for
+            # soft continuations in a quote or list, until a blank line, new
+            # container/item, or block boundary ends it.
+            block = re.match(r"^ {0,3}(?:#{1,6}(?:\s|$)|<|(?:[-*_][ \t]*){3,}$|[=-]+[ \t]*$)", content)
+            paragraph = bool(content.strip()) and not comment and not block
+            yield offset, active
         offset += len(raw)
     if fence is not None or comment:
         raise UnsafeProjectError("Instruction file has an unclosed Markdown fence or HTML comment.")

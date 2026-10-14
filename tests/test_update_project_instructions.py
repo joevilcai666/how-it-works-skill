@@ -146,6 +146,42 @@ class ProjectSetupTests(unittest.TestCase):
                 self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
                 self.assertEqual(self.claude.read_bytes(), updated)
 
+    def test_container_paragraph_continuation_imports_are_active_in_parser(self):
+        module = load_updater()
+        for text in ("> Follow the shared rules in\n>     @AGENTS.md\n",
+                     "> - Follow the shared rules in\n>     @AGENTS.md\n",
+                     "- Follow the shared rules in\n    @AGENTS.md\n",
+                     "> - Follow the shared rules\n>\n>     @AGENTS.md\n",
+                     "- Follow the shared rules\n\n    @AGENTS.md\n"):
+            with self.subTest(text=text):
+                self.assertTrue(module._has_active_import(text))
+
+    def test_container_paragraph_continuation_does_not_duplicate_import_via_cli(self):
+        for original in ("> Follow the shared rules in\n>     @AGENTS.md\n",
+                         "> - Follow the shared rules in\n>     @AGENTS.md\n",
+                         "- Follow the shared rules in\n    @AGENTS.md\n",
+                         "> - Follow the shared rules\n>\n>     @AGENTS.md\n",
+                         "- Follow the shared rules\n\n    @AGENTS.md\n"):
+            with self.subTest(original=original):
+                self.claude.write_text(original)
+                self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+                self.assertEqual(self.claude.read_text(), original)
+                self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+                self.assertEqual(self.claude.read_text().count("@AGENTS.md"), 1)
+
+    def test_paragraph_context_stops_at_blank_block_or_new_container(self):
+        module = load_updater()
+        for text in ("> Follow the rules\n>\n>     @AGENTS.md\n",
+                     "> # Project rules\n>     @AGENTS.md\n",
+                     "Follow the rules\n>     @AGENTS.md\n",
+                     "> Follow the rules\n> -     @AGENTS.md\n",
+                     "> ```md\n> example\n> ```\n>     @AGENTS.md\n",
+                     ">     example\n>     @AGENTS.md\n",
+                     "> - Follow the rules\n>\n>       @AGENTS.md\n",
+                     "- Follow the rules\n\n      @AGENTS.md\n"):
+            with self.subTest(text=text):
+                self.assertFalse(module._has_active_import(text))
+
     def test_inline_code_and_indented_code_imports_are_inactive(self):
         for original in ("Use `@AGENTS.md` as an example.\n", "``@./AGENTS.md``\n",
                          "    @AGENTS.md\n", "prefix<!-- @AGENTS.md -->suffix\n",
