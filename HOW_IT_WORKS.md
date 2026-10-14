@@ -6,20 +6,17 @@ It runs through an AI client that can read the project and execute authorized lo
 ## Current status and evidence
 
 The shared workflow, project instruction updater, synthetic demo, and package checks exist.
-This document describes the v0.1.1 release snapshot with the OpenAI desktop-only metadata fix and local package validation.
-Its evidence covers pre-publication verification.
-Evidence of public release, installation, and directory status belongs in the mutable records on `main` after external actions.
-This immutable snapshot does not assert v0.1.1 public availability.
-
-GitHub and release `v0.1.0` are public. Isolated public installs passed for Codex, Claude Code, and the generic installer.
-At snapshot verification time, official directories were `planned`, with no submission or acceptance.
+The [v0.1.1 release](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1) and its exact ZIP are public.
+Fresh isolated public installs passed for Codex, Claude Code, and npx on release commit `8bdbc8d`.
+Both OpenAI manifest locations declare the bundled updater's local execution requirement.
+Official directories remain `planned`, with no submission or acceptance.
 The [distribution register](docs/distribution.md) records each channel and its remaining boundary.
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), [privacy scanner](scripts/privacy_scan.py), and [local execution metadata](plugin.json), v0.1.1 release snapshot | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 148 root tests and nine synthetic demo tests passed for v0.1.1 in pre-publication verification. Public v0.1.0 evidence: 140 root tests passed on `071d6ca`. Nine demo tests passed on `dd734d0`, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check execution metadata, version parity, refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. They do not prove v0.1.1 client installation |
-| runtime verified | [Client record](docs/verification/v0.1.0.md), 2026-10-14. Local model trial: `dd734d0`. Public installs: release `071d6ca` | Codex saved a synthetic document. Public Codex and Claude installs enabled version 0.1.0. The generic installer copied matching main-skill files | Codex met 6 of 7 rubric checks. HTTP 401 blocked the Claude document run and model use of the imports. Public installs did not repeat model execution |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), [privacy scanner](scripts/privacy_scan.py), and [local execution metadata](plugin.json), public v0.1.1 at `8bdbc8d` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 148 root tests, nine demo tests, both Agent Skills validators, Claude strict validation, and privacy checks passed for the v0.1.1 package | Local cases check execution metadata, version parity, refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | Local checks and source diagrams do not prove an OpenAI desktop install or visual render |
+| runtime verified | [v0.1.1 public installs](docs/verification/v0.1.1.md), 2026-10-15. [Earlier model trial](docs/verification/v0.1.0.md), 2026-10-14, code `dd734d0` | Codex and Claude enabled version 0.1.1. Installed skill files and manifests matched the release. Npx copied the tag's main skill. Earlier Codex saved a synthetic document | No new v0.1.1 model run. Earlier Codex met 6 of 7 rubric checks. Earlier Claude HTTP 401 blocked a document and import-use trial |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
 Code is a recipe. A local test checks a prepared example.
@@ -34,14 +31,13 @@ The package needs a client with authorized local execution.
 
 ```mermaid
 flowchart LR
-  G[Public GitHub v0.1.0] --> A
+  G[Public GitHub v0.1.1 and exact ZIP] --> A
   G --> B
   G --> C
-  L[v0.1.1 release snapshot] --> X[OpenAI desktop local execution]
-  X --> A
   A[Codex plugin or skill] --> S[Shared main skill]
   B[Claude Code plugin] --> S
   C[Npx install or manual skills copy] --> S
+  S --> X[Requires authorized local execution]
   S --> U[Project maintenance rules]
   S --> R[Read sources and trace a request]
   R --> E[Classify evidence and limits]
@@ -197,8 +193,8 @@ python3 -m unittest discover -s demo/acorn-tasks/tests -v
 python3 scripts/check_repo.py
 ```
 
-The repository checker, both Agent Skills validators, and Claude strict validation passed locally on release `071d6ca`, 2026-10-14.
-The same checks and nine synthetic demo tests passed for v0.1.1 in pre-publication verification on 2026-10-15.
+The repository checker, both Agent Skills validators, and Claude strict validation passed for public v0.1.1 at `8bdbc8d`.
+Nine synthetic demo tests also passed. The package verification date is 2026-10-15.
 New tests cover both local execution declarations and version parity. The checker rejects missing, false, and non-boolean declarations.
 It runs the root tests, manifest consistency checks, local Markdown links, Mermaid counts, fences, privacy scans, and Git whitespace checks.
 It also runs `skills-ref` and Claude strict validation when installed.
@@ -230,31 +226,38 @@ The agent must render diagrams when a renderer is available and report which che
 ## Limitations and distribution
 
 The package supplies agent instructions and a local updater. The client supplies repository access, model execution, tools, and permission controls.
-The v0.1.1 release snapshot records local package evidence only.
-No clean v0.1.1 desktop install, model run, or portal acceptance existed at snapshot verification time.
+The public package has isolated CLI installation evidence.
+A clean OpenAI desktop installation, a new model run, and portal acceptance remain unverified.
 The skill adds no telemetry or upload service. The client and third-party installers retain their own data policies.
 Privacy checks detect known patterns and image metadata. They cannot guarantee the absence of every sensitive fact.
 
 No cross-client document acceptance exists yet.
-Codex CLI 0.162.1 loaded both local skills and completed one synthetic document run on candidate `dd734d0` in an isolated project.
+The earlier Codex CLI 0.162.1 trial loaded both skills and completed one synthetic document on candidate `dd734d0`.
 It passed six rubric checks. Its two diagrams failed the original case's three-diagram threshold.
 The request did not specify three diagrams, and the skill permits two to four.
 The document links resolved, but no Mermaid renderer was available.
 
-Claude Code 2.1.295 discovered both skills through the local plugin path.
+The earlier Claude Code 2.1.295 trial discovered both skills through the local plugin path.
 Its configured provider returned HTTP 401, so document execution and use of imported project instructions remain unverified.
 Updater checks preserved `AGENTS.md`, root `CLAUDE.md`, and `.claude/CLAUDE.md`, with one correct relative import in each Claude file.
 Repeat runs left all three files unchanged. Ambiguous nested markup returned exit 2 before any file change.
 Fresh setup created `AGENTS.md` and left both Claude instruction locations absent.
-The generic `skills` installer 1.7.2 copied the main skill into an isolated project, with file equality and repeat-run setup checks.
-That installer has no model execution for this request. Its install result does not prove a separate generic client's document behavior.
-See the [commands, results, and evidence limits](docs/verification/v0.1.0.md).
+The [earlier v0.1.0 record](docs/verification/v0.1.0.md) retains these model and updater trials.
+Those trials do not prove a new v0.1.1 model run.
+
+The current [v0.1.1 record](docs/verification/v0.1.1.md) verifies a fresh public tag clone and three isolated install routes.
+Codex CLI 0.162.1 and Claude Code 2.1.218 enabled plugin version 0.1.1.
+Both installed skill directories and both local execution declarations matched the public package.
+The generic installer 1.7.2 copied the tag's main skill with identical files.
+No client executed a new model request. Installation does not prove document acceptance.
 
 The public GitHub release and three public install routes have verification records.
-The annotated `v0.1.0` tag identifies `071d6ca`. The deterministic archive hash appears in the [distribution register](docs/distribution.md).
+The annotated `v0.1.1` tag identifies `8bdbc8d`. Its exact ZIP hash appears in the [distribution register](docs/distribution.md).
+The uploaded asset's digest and an independently hashed download matched.
+Both released tags remain fixed. The temporary install workspace moved to Trash, with recovery possible.
 Official directory submissions remain pending because authenticated portal access did not complete.
-The skills.sh [skill page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works) and repository page are discoverable as of 2026-10-14.
-The public install succeeded. Page visibility does not prove indexed release/checksum identity, completed audits, install count, ranking, or document acceptance.
+The skills.sh [skill page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works) is discoverable as of 2026-10-15.
+It does not expose v0.1.1 identity or the release checksum. Page visibility does not prove completed audits, install count, ranking, or document acceptance.
 AgentSkill.sh import remains pending account and terms review. No optional webhook exists.
 SkillsMP lacks verified release identity and an explicit listing-removal process, so proactive submission is rejected.
 The social preview image is public as a file. Its upload to the GitHub setting remains unverified.
@@ -263,11 +266,11 @@ Directory submission, directory acceptance, and product-owner acceptance remain 
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Product-owner summary: The v0.1.1 release snapshot declares the desktop execution requirement for its bundled Python updater.
-Its local checks do not prove desktop installation or directory acceptance. The public v0.1.0 release retains its installation evidence.
-Public evidence after external actions belongs in the mutable records on `main`.
+Product-owner summary: v0.1.1 is public, with a verified ZIP and three fresh public install routes.
+Official directories, the social preview setting, and a clean OpenAI desktop installation remain unverified.
+New model execution, Mermaid visual rendering, and product-owner acceptance still need separate evidence.
 
-Analyzed package: v0.1.1 release snapshot, pre-publication verification. Public v0.1.0 evidence: `071d6ca2bf04f3af694de6343016e1e335c2bd76`.
+Analyzed public package: `8bdbc8d06f1c9e572482dc6034a2d63fd2a42739`, tag `v0.1.1`.
 Local model trial code: `dd734d08e1a185a719a37a88038338609cd4140d`.
 
 Last reviewed: 2026-10-15

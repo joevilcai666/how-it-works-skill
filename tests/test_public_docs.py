@@ -83,7 +83,7 @@ class PublicDocsTests(unittest.TestCase):
         self.assert_distribution_table(text)
 
     def test_release_snapshot_documents_local_execution_and_evidence_limits(self):
-        for name in ("HOW_IT_WORKS.md", "docs/distribution.md", "docs/releases/v0.1.1.md", "CHANGELOG.md"):
+        for name in ("docs/releases/v0.1.1.md", "CHANGELOG.md"):
             with self.subTest(name=name):
                 text = self.read(name)
                 for value in ("v0.1.1", "release snapshot", "pre-publication verification",
@@ -97,6 +97,33 @@ class PublicDocsTests(unittest.TestCase):
                     self.assertIn("https://developers.openai.com/plugins/deploy/desktop-only", text)
         changelog = self.read("CHANGELOG.md")
         self.assertLess(changelog.index("## 0.1.1"), changelog.index("## 0.1.0"))
+
+    def test_public_v011_record_identifies_asset_installs_and_limits(self):
+        text = self.read("docs/verification/v0.1.1.md")
+        for value in (
+            "8bdbc8d06f1c9e572482dc6034a2d63fd2a42739",
+            "5403991595d227a4681881331903cf08226ae615",
+            "9f85414ea9feaec059dc19e37c48d8a8949be8793266a851def9a780ed0b8bee",
+            "https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1",
+            "https://github.com/joevilcai666/how-it-works-skill/releases/download/v0.1.1/how-it-works-skill-v0.1.1.zip",
+            "--ref v0.1.1", "tree/v0.1.1", "requires_local_executor",
+            "148 root tests", "No authentication copies", "OpenAI desktop installation",
+            "no new model run", "directory acceptance", "Last reviewed: 2026-10-15",
+        ):
+            self.assertIn(value, text)
+        self.assertIn("v0.1.0.md", text)
+
+    def test_live_documents_link_public_v011_evidence(self):
+        for name in ("README.md", "README.zh-CN.md", "HOW_IT_WORKS.md", "docs/distribution.md"):
+            with self.subTest(name=name):
+                text = self.read(name)
+                self.assertIn("v0.1.1", text)
+                self.assertIn("verification/v0.1.1.md", text)
+                self.assertIn("https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1", text)
+                self.assertNotIn("This immutable snapshot does not assert v0.1.1 public availability", text)
+                self.assertNotIn("public installation evidence below still refer to v0.1.0", text)
+                self.assertNotIn("The v0.1.1 release snapshot records local package evidence only.", text)
+                self.assertNotIn("No clean v0.1.1 desktop install, model run, or portal acceptance existed at snapshot verification time.", text)
 
     def assert_distribution_table(self, text):
         header = next(line for line in text.splitlines() if line.startswith("| Channel |"))
@@ -119,7 +146,7 @@ class PublicDocsTests(unittest.TestCase):
             self.assertEqual(len(row.split("|")), len(header.split("|")))
             self.assertTrue(all(cells))
             self.assertIn(cells[1], states)
-            self.assertIn("v0.1.0", cells[4])
+            self.assertIn("v0.1.1", cells[4])
             names.append(cells[0])
         self.assertEqual(len(names), len(set(names)))
         for channel in channels:

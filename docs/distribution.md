@@ -1,25 +1,39 @@
 # Distribution register
 
 The public [GitHub repository](https://github.com/joevilcai666/how-it-works-skill) and
-[v0.1.0 release](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.0) are available.
+[v0.1.1 release](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1) are available.
 Public GitHub installs passed in isolated Codex, Claude Code, and generic installer configurations.
 No official directory submission or directory approval exists in this record.
 An install result does not prove a directory entry or a successful document run.
 
-## Release snapshot evidence
+## Current public package
 
-The v0.1.1 release snapshot contains the OpenAI desktop-only metadata fix and local package validation.
-Its evidence covers pre-publication verification.
-Evidence of public release, installation, and directory status belongs in this register on `main` after external actions.
-This immutable snapshot does not assert v0.1.1 public availability.
-No clean v0.1.1 desktop install, model run, or portal acceptance existed at snapshot verification time.
-Its [release notes](releases/v0.1.1.md) describe the local package and evidence limits.
+Public v0.1.1 installs passed through npx, Codex, and Claude Code on 2026-10-15.
+Both client checkouts and installed skill directories matched the release commit.
+The [verification record](verification/v0.1.1.md) separates these installs from prior model trials.
+The immutable [release notes](releases/v0.1.1.md) describe the snapshot's local evidence before public actions.
 Root `plugin.json` declares `requires_local_executor: true` under `extensions.com.openai`.
 The Codex overlay declares the field at its top level because the skills call a bundled local Python updater.
 The package adds no MCP server or permissions.
-The channel table and public installation evidence below still refer to v0.1.0.
+OpenAI desktop installation, a new model run, portal acceptance, and user acceptance remain unverified.
 
-## Immutable release identity
+## Immutable v0.1.1 release identity
+
+- Release/tag: `v0.1.1`.
+- Release commit: `8bdbc8d06f1c9e572482dc6034a2d63fd2a42739`.
+- Annotated tag object: `5403991595d227a4681881331903cf08226ae615`.
+- Release: [How It Works Skill v0.1.1](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1).
+- Exact archive: [how-it-works-skill-v0.1.1.zip](https://github.com/joevilcai666/how-it-works-skill/releases/download/v0.1.1/how-it-works-skill-v0.1.1.zip).
+- Archive SHA-256: `9f85414ea9feaec059dc19e37c48d8a8949be8793266a851def9a780ed0b8bee`.
+
+Two tag archive runs produced identical bytes. The ZIP contains 95 entries and is 209594 bytes.
+The extracted current-file privacy scan returned zero findings.
+GitHub's asset digest and an independently hashed anonymous download matched the local archive.
+The ZIP is a release asset for the later OpenAI upload. No directory received it.
+The isolated archive and client workspace moved to its own Trash directory. Recovery remains possible.
+No authentication copies or normal client changes required cleanup.
+
+## Preserved v0.1.0 release identity
 
 - Release/tag: `v0.1.0`.
 - Release commit: `071d6ca2bf04f3af694de6343016e1e335c2bd76`.
@@ -35,19 +49,19 @@ The tag remains on the release commit. Later documentation commits on `main` do 
 
 ## Channel status
 
-Each row refers to the canonical release identity above.
+Each row targets the canonical v0.1.1 release identity. The preserved v0.1.0 identity belongs to its separate historical record.
 A planned or rejected channel has no verified release entry or checksum at that channel.
 The Status column uses exactly one value: `planned`, `submitted`, `published`, `listed`, `rejected`, or `removed`.
 `listed` means that a public discovery page exists. It does not mean audited directory acceptance or verified release identity.
 
 | Channel | Status | Source URL | Permissions | Release/tag | SHA-256 | Update route | Removal route | Last policy review |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| GitHub repository and release | published | [Repository](https://github.com/joevilcai666/how-it-works-skill), [release](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.0) | Public synthetic package only. Read and Write capabilities describe local agent work. No added MCP server or hook | v0.1.0 | Canonical archive hash above | Publish a new tag for package changes. Keep v0.1.0 fixed | Maintainer controls repository and release availability. Client removal commands appear below | 2026-10-14 |
-| OpenAI public plugin directory | planned | [Submission portal](https://platform.openai.com/plugins), [official flow](https://developers.openai.com/plugins/deploy/submission) | Portal requires an eligible organization role and verified developer identity. Neither account condition was verified. No ZIP upload or expanded access | Target v0.1.0. No directory entry | Unverified at channel | Official guide requires another ZIP for metadata or skill updates | Portal removal controls remain unverified because account access did not complete | 2026-10-14 |
-| Anthropic official Claude plugin directory | planned | [Official directory](https://github.com/anthropics/claude-plugins-official), [developer portal](https://claude.ai/directory/manage) | Official flow requires a paid Claude plan and an eligible account or organization role. Anonymous portal access showed sign-in. No GitHub access grant | Target v0.1.0. No directory entry | Unverified at channel | Official guide describes tracked branch commits, scans, and version publication | Official guide describes withdrawal or delisting in the developer portal. No account-side removal action ran | 2026-10-14 |
-| skills.sh discovery and npx skills install | listed | [Skill page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works), [CLI source](https://github.com/vercel-labs/skills) | Public source clone and project-local skill copy. First trial disabled telemetry. A second public install used normal anonymous install telemetry. Page visibility does not prove audit acceptance. No account connection | Install files matched v0.1.0. Discovery page visible on 2026-10-14 | Unverified at index | `npx skills update` refreshes client files. Official FAQ describes discovery from install telemetry | `npx skills remove how-it-works` removes client files. [Author requests](https://skills.sh/contact) use a PR for hide or redirect rules | 2026-10-14 |
-| AgentSkill.sh GitHub import | planned | [Import page](https://agentskill.sh/submit), [privacy](https://agentskill.sh/privacy), [terms](https://agentskill.sh/terms) | Public GitHub import is documented. Account SSO includes profile and email data. No account connection or webhook | Target v0.1.0. No entry verified | Unverified at channel | Import page describes daily source sync and direct-URL resubmission | Privacy policy provides a contact route for account and associated data deletion. Listing-specific removal remains unverified | 2026-10-14 |
-| SkillsMP | rejected | [FAQ](https://skillsmp.com/docs/faq), [terms](https://skillsmp.com/terms), [privacy](https://skillsmp.com/privacy) | Public GitHub index. No account connection, source upload, or extra permission | Target v0.1.0. No indexed version verified | Unverified at channel | FAQ describes daily GitHub sync. Manual `/submit` returned 404 | Privacy policy provides a data-deletion contact. No explicit listing-removal process verified | 2026-10-14 |
+| GitHub repository and release | published | [Repository](https://github.com/joevilcai666/how-it-works-skill), [release](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1) | Public synthetic package only. Read and Write capabilities describe local agent work. No added MCP server or hook | v0.1.1 | `9f85414ea9feaec059dc19e37c48d8a8949be8793266a851def9a780ed0b8bee` | Publish a new tag for package changes. Keep both released tags fixed | Maintainer controls repository and release availability. Client removal commands appear below | 2026-10-15 |
+| OpenAI public plugin directory | planned | [Submission portal](https://platform.openai.com/plugins), [official flow](https://developers.openai.com/plugins/deploy/submission) | Portal requires an eligible organization role and verified developer identity. Neither account condition was verified. No ZIP upload or expanded access | Target v0.1.1. No directory entry | Unverified at channel | Official guide requires another ZIP for metadata or skill updates | Portal removal controls remain unverified because account access did not complete | 2026-10-14 |
+| Anthropic official Claude plugin directory | planned | [Official directory](https://github.com/anthropics/claude-plugins-official), [developer portal](https://claude.ai/directory/manage) | Official flow requires a paid Claude plan and an eligible account or organization role. Anonymous portal access showed sign-in. No GitHub access grant | Target v0.1.1. No directory entry | Unverified at channel | Official guide describes tracked branch commits, scans, and version publication | Official guide describes withdrawal or delisting in the developer portal. No account-side removal action ran | 2026-10-14 |
+| skills.sh discovery and npx skills install | listed | [Skill page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works), [CLI source](https://github.com/vercel-labs/skills) | Public source clone and project-local skill copy. v0.1.1 tag install disabled telemetry. Earlier v0.1.0 discovery trial used anonymous telemetry. Page visibility does not prove audit acceptance. No account connection | Install files matched v0.1.1. Discovery page visible on 2026-10-15. Indexed v0.1.1 identity unverified | Unverified at index | `npx skills update` refreshes client files. Official FAQ describes discovery from install telemetry | `npx skills remove how-it-works` removes client files. [Author requests](https://skills.sh/contact) use a PR for hide or redirect rules | 2026-10-14 |
+| AgentSkill.sh GitHub import | planned | [Import page](https://agentskill.sh/submit), [privacy](https://agentskill.sh/privacy), [terms](https://agentskill.sh/terms) | Public GitHub import is documented. Account SSO includes profile and email data. No account connection or webhook | Target v0.1.1. No entry verified | Unverified at channel | Import page describes daily source sync and direct-URL resubmission | Privacy policy provides a contact route for account and associated data deletion. Listing-specific removal remains unverified | 2026-10-14 |
+| SkillsMP | rejected | [FAQ](https://skillsmp.com/docs/faq), [terms](https://skillsmp.com/terms), [privacy](https://skillsmp.com/privacy) | Public GitHub index. No account connection, source upload, or extra permission | Target v0.1.1. No indexed version verified | Unverified at channel | FAQ describes daily GitHub sync. Manual `/submit` returned 404 | Privacy policy provides a data-deletion contact. No explicit listing-removal process verified | 2026-10-14 |
 
 ## Publication evidence and remaining boundaries
 
@@ -72,13 +86,17 @@ Page visibility does not prove completed security audits, marketplace approval, 
 This record makes no verified install-count or ranking claim.
 The earlier check returned 404. The current direct pages show asynchronous discovery after that check.
 The cached reader still returned the earlier 404, so the current result uses direct source pages.
+The direct skill page also returned HTTP 200 on 2026-10-15.
+It displayed the canonical GitHub install command, but no v0.1.1 identifier or release archive checksum.
+The listed status does not verify v0.1.1 source identity.
 
 OpenAI's current official flow uses a ZIP upload at its submission portal.
 The UI attempt failed before an authenticated portal or a submission form opened.
 Developer identity, organization access, terms, automated package checks, and publication remain unverified.
 The [desktop-only guide](https://developers.openai.com/plugins/deploy/desktop-only) requires `requires_local_executor: true` for skills that require desktop execution.
-The v0.1.0 tagged manifest does not declare that field. The v0.1.1 release snapshot declares it in both required manifest locations.
-Directory eligibility and a clean desktop installation of v0.1.1 lacked evidence at snapshot verification time. The v0.1.0 tag remains fixed.
+The v0.1.0 tagged manifest does not declare that field. Public v0.1.1 declares it in both required manifest locations.
+Installed Codex and Claude caches also expose those declarations.
+Directory eligibility and a clean OpenAI desktop installation of v0.1.1 remain unverified. The v0.1.0 tag remains fixed.
 Do not mark this channel submitted from the existence of a ZIP.
 
 Anthropic's [current submission guide](https://clau.de/plugin-directory-submission) directs authors to the developer portal.
@@ -109,9 +127,9 @@ These commands apply to the configuration where the user installed the package:
 | Manual copy | Replace the complete skill directory from a reviewed release | Remove the installed skill directory |
 
 The CLI help and vendor documents support these commands.
-Isolated Codex and Claude plugin removal and marketplace removal exited 0.
-The isolated npx main-skill removal exited 0 and left its installed directory absent.
-This release verification did not execute an update against a newer release.
-See [client commands and evidence limits](verification/v0.1.0.md).
+The [v0.1.0 trial](verification/v0.1.0.md) verified Codex, Claude, and npx removal commands.
+The [v0.1.1 trial](verification/v0.1.1.md) used fresh isolated installs, then moved its whole temporary workspace to Trash.
+It did not repeat the removal commands or execute an update against a newer release.
+A tag-pinned install stays on its selected tag until the user selects another reviewed release.
 
 Last register review: 2026-10-15. Historical channel observations retain their stated dates.

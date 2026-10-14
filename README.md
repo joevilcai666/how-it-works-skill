@@ -58,11 +58,12 @@ Large repositories can take more than five minutes to inspect.
 See the [synthetic Acorn Tasks project](demo/acorn-tasks/README.md) and its [example product explanation](demo/expected/HOW_IT_WORKS.md).
 All demo data is fictional. The example does not prove production operation.
 
-Release status: [v0.1.0](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.0) is public.
-Isolated public installs passed for Codex, Claude Code, and `npx skills`.
+Release status: [v0.1.1](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.1) is public.
+[v0.1.1 verification](docs/verification/v0.1.1.md) confirms isolated public installs for Codex, Claude Code, and `npx skills`.
+The exact ZIP and its checksum appear in that record.
 Official directories have no submission or acceptance yet. See the [distribution register](docs/distribution.md).
-The [skills.sh page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works) is discoverable as of 2026-10-14.
-Page visibility does not prove indexed release/checksum identity, completed audits, install counts, or ranking.
+The [skills.sh page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works) is discoverable as of 2026-10-15.
+The page does not expose v0.1.1 identity or the ZIP checksum. Visibility does not prove completed audits, install counts, or ranking.
 
 ## Install options
 
@@ -88,7 +89,7 @@ Keep the full checkout for this route. The root `plugin.json` describes the port
 The Codex overlay and repository marketplace point to the same `skills/` directory.
 The plugin also includes a small setup skill.
 Codex CLI 0.162.1 installed this public plugin in an isolated configuration.
-Use `--ref v0.1.0` on the marketplace command to select the verified release.
+Use `--ref v0.1.1` on the marketplace command to select the verified release.
 
 ### Claude Code: repository marketplace
 
@@ -101,7 +102,7 @@ Run these commands in Claude Code:
 
 Use the loaded skill through the client's skill menu or supported invocation syntax.
 The package includes a Claude manifest and a repository marketplace.
-Claude Code 2.1.295 installed version 0.1.0 through this public marketplace.
+Claude Code 2.1.218 installed version 0.1.1 through this public marketplace.
 The document trial still requires valid model authentication. Installation does not prove document acceptance.
 
 <a id="manual-install"></a>
@@ -124,8 +125,8 @@ Generic clients do not need the plugin manifests or setup adapter.
 
 | Client or component | Available package support | Verified here | Still unverified |
 | --- | --- | --- | --- |
-| Codex | Agent Skills, portable `plugin.json`, Codex overlay, setup skill | Public plugin install, both skill directories, one local synthetic document | Model use through the public plugin and full acceptance |
-| Claude Code | Shared skills, plugin manifest, repository marketplace | Public install, enabled plugin, strict validation, local skill discovery | Document run and model use of project imports. Provider returned HTTP 401 |
+| Codex | Agent Skills, portable `plugin.json`, Codex overlay, setup skill | Public v0.1.1 plugin install and both skill directories. Earlier v0.1.0 synthetic document | Model use through the public plugin and full acceptance |
+| Claude Code | Shared skills, plugin manifest, repository marketplace | Public v0.1.1 install, enabled plugin, strict validation. Earlier local skill discovery | New document run and model use of project imports. Earlier trial returned HTTP 401 |
 | Generic Agent Skills client | Complete `skills/how-it-works/` directory | Public npx install and copied-file equality | Each independent client's document execution |
 | Instruction updater | Python 3.9+, English and Chinese maintenance blocks | Idempotency, preservation, refusal cases, local unit tests | Every filesystem and instruction configuration |
 
@@ -162,6 +163,7 @@ Report vulnerabilities through [private reporting](SECURITY.md).
 Send a synthetic bug example, a client compatibility report, or a clear improvement request.
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and evidence requirements.
 The package uses the [MIT license](LICENSE).
-See the [0.1.0 release notes](docs/releases/v0.1.0.md), [verification record](docs/verification/v0.1.0.md), and [changelog](CHANGELOG.md).
+See the [0.1.1 release notes](docs/releases/v0.1.1.md), [public verification](docs/verification/v0.1.1.md), and [changelog](CHANGELOG.md).
+The [v0.1.0 verification record](docs/verification/v0.1.0.md) preserves earlier model and setup trials.
 
-Last reviewed: 2026-10-14.
+Last reviewed: 2026-10-15.
