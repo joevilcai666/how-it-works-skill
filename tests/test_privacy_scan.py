@@ -358,6 +358,29 @@ class PrivacyScanTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, "Non-function CSS token caused a false finding")
         self.assertEqual(findings, [])
 
+    def test_svg_css_comments_after_quoted_url_argument_fail(self):
+        url = "https" + "://" + "example.invalid" + "/a.svg#p"
+        for index, suffix in enumerate(("/**/", " /* synthetic */ /**/ ")):
+            with self.subTest(case=index):
+                css = 'rect {fill:url("' + url + '"' + suffix + ');}'
+                (self.root / "commented.svg").write_text('<svg><style>' + css + '</style></svg>')
+                result, findings = self.scan()
+                self.assertEqual(result.returncode, 1, "Comment after quoted URL hid external resource")
+                self.assertTrue(any(item["rule"] == "svg-external-image" for item in findings))
+
+    def test_svg_css_comment_after_quoted_url_fails_history(self):
+        url = "https" + "://" + "example.invalid" + "/a.svg#p"
+        (self.root / "commented.svg").write_text('<svg><style>rect {fill:url("' + url + '"/**/);}</style></svg>')
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic quoted CSS URL")
+        (self.root / "commented.svg").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove quoted CSS URL")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1, "Quoted CSS URL passed history scan")
+        self.assertTrue(any(item["rule"] == "svg-external-image" and item.get("commit")
+                            for item in findings))
+
 
 if __name__ == "__main__":
     unittest.main()

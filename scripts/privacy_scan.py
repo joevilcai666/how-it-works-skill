@@ -133,8 +133,16 @@ def css_urls(value):
             position += 1
         if position < len(value) and value[position] in "\"'":
             reference, position = string(position)
-            while position < len(value) and value[position] in whitespace:
-                position += 1
+            # A quoted url() is a function with a string token. CSS comments
+            # between that token and the closing parenthesis are ignored.
+            while position < len(value):
+                if value[position] in whitespace:
+                    position += 1
+                elif value.startswith("/*", position):
+                    end = value.find("*/", position + 2)
+                    position = len(value) if end < 0 else end + 2
+                else:
+                    break
             if reference is not None and position < len(value) and value[position] == ")":
                 return reference, position + 1
             return None, position
