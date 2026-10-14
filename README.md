@@ -51,6 +51,7 @@ The first run adds project-local maintenance rules to `AGENTS.md`.
 It preserves unrelated instructions and adds a root `AGENTS.md` import to existing Claude project instructions when needed.
 Root `CLAUDE.md` uses `@AGENTS.md`. `.claude/CLAUDE.md` uses `@../AGENTS.md`.
 If both files exist, setup checks and updates both. It does not create either file or change global instructions.
+If Markdown context is ambiguous or unsupported, setup stops before any instruction-file edit. Simplify the markup before another run.
 The agent then creates or refreshes one `HOW_IT_WORKS.md` in your language.
 Large repositories can take more than five minutes to inspect.
 

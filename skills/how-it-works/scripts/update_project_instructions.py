@@ -33,6 +33,23 @@ class SetupReport:
     claude: Literal["updated", "unchanged", "absent"]
 
 
+Classification = Literal["active", "inactive", "ambiguous"]
+
+
+@dataclass(frozen=True)
+class MarkdownLine:
+    offset: int
+    text: str
+    classification: Classification
+
+
+@dataclass(frozen=True)
+class FenceContext:
+    token: str
+    quote_depth: int
+    list_indent: int
+
+
 def find_project_root(start: Path) -> Path:
     """Find the nearest Git root, including worktrees with a .git file."""
     start = start.resolve(strict=True)
@@ -71,8 +88,23 @@ def _container_context(line: str) -> tuple[str, int, bool, int]:
         return content, quote_depth, new_item, list_indent
 
 
+def _fence_content(line: str, context: FenceContext) -> Optional[str]:
+    """Remove only the opening fence's fixed containers, never body syntax."""
+    content = line.expandtabs(4)
+    for _ in range(context.quote_depth):
+        quote = re.match(r"^ {0,3}> ?", content)
+        if not quote:
+            return None
+        content = content[quote.end():]
+    if context.list_indent:
+        if not content.startswith(" " * context.list_indent):
+            return None
+        content = content[context.list_indent:]
+    return content
+
+
 def _markdown_lines(text: str):
-    """Yield offsets and active text. Refuse contexts that can hide new rules."""
+    """Classify supported contexts. Unknown structures never supply ownership."""
     fence = None
     comment = False
     inline_until = 0
@@ -82,9 +114,24 @@ def _markdown_lines(text: str):
     offset = 0
     for raw in text.splitlines(keepends=True):
         line = raw.rstrip("\r\n")
+        if fence is not None:
+            # Code cannot change list, paragraph, comment, or quote state.
+            # Only a closing token in the frozen opening context ends a fence.
+            content = _fence_content(line, fence)
+            closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", content) if content is not None else None
+            if closing and closing[1][0] == fence.token[0] and len(closing[1]) >= len(fence.token):
+                fence = None
+            yield MarkdownLine(offset, "", "inactive")
+            offset += len(raw)
+            continue
         # Container prefixes cannot make marker ownership top-level. They can
         # still introduce fences whose contents must not supply active imports.
         content, quote_depth, new_item, new_list_indent = _container_context(line)
+        # Lazy quote continuations and nested quotes require a complete block
+        # parser. Refuse them instead of guessing whether an import is active.
+        ambiguous = (quote_depth > 1 or
+                     (paragraph and quote_depth < paragraph_quote_depth and bool(content.strip())) or
+                     bool(re.match(r"^ {0,3}<(?!!--)(?:/?[A-Za-z]|[!?])", content)))
         if quote_depth != paragraph_quote_depth:
             list_indent = 0
         if new_item:
@@ -101,24 +148,27 @@ def _markdown_lines(text: str):
             paragraph = False
         paragraph_quote_depth = quote_depth
         if inline_until > offset and inline_until >= offset + len(line):
-            yield offset, ""
-        elif fence is not None:
-            paragraph = False
-            closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", content)
-            if closing and closing[1][0] == fence[0] and len(closing[1]) >= len(fence):
-                fence = None
-            yield offset, ""
+            yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
         elif not comment and inline_until <= offset and content.startswith("    ") and not paragraph:
-            yield offset, ""
+            yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
         elif not comment and inline_until <= offset and re.match(r"^ {0,3}(`{3,}|~{3,})", content):
-            fence = re.match(r"^ {0,3}(`{3,}|~{3,})", content)[1]
+            opening = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", content)
+            ambiguous = ambiguous or (opening[1][0] == "`" and "`" in opening[2])
+            fence = FenceContext(opening[1], quote_depth, list_indent)
             paragraph = False
-            yield offset, ""
+            yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
+        elif not comment and inline_until <= offset and re.match(r"^ {0,3}\[[^\]\n]+\]:", content):
+            # A standalone link definition is not a paragraph. Its indented
+            # successor can therefore be code. A definition-like continuation
+            # inside prose is outside the supported subset.
+            ambiguous = ambiguous or paragraph
+            paragraph = False
+            yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
         elif not comment and inline_until <= offset and line.rstrip(" \t") in MARKERS:
             # An owned delimiter is itself an HTML comment. Keep only exact,
             # standalone, top-level delimiters visible to the marker parser.
             paragraph = False
-            yield offset, line
+            yield MarkdownLine(offset, line, "ambiguous" if ambiguous else "active")
         else:
             visible = []
             cursor = max(0, inline_until - offset)
@@ -154,7 +204,7 @@ def _markdown_lines(text: str):
             # container/item, or block boundary ends it.
             block = re.match(r"^ {0,3}(?:#{1,6}(?:\s|$)|<|(?:[-*_][ \t]*){3,}$|[=-]+[ \t]*$)", content)
             paragraph = bool(content.strip()) and not comment and not block
-            yield offset, active
+            yield MarkdownLine(offset, active, "ambiguous" if ambiguous else "active" if active.strip() else "inactive")
         offset += len(raw)
     if fence is not None or comment:
         raise UnsafeProjectError("Instruction file has an unclosed Markdown fence or HTML comment.")
@@ -169,8 +219,8 @@ def _marker_span(text: str, start: str, end: str) -> Optional[tuple[int, int]]:
     first, last = text.index(start), text.index(end)
     if first >= last:
         raise UnsafeProjectError("Managed markers are in the wrong order.")
-    active = {offset + len(line) - len(line.lstrip(" ")): line.strip(" \t")
-              for offset, line in _markdown_lines(text) if line.strip(" \t") in (start, end)}
+    active = {line.offset: line.text.strip(" \t") for line in _markdown_lines(text)
+              if line.classification == "active" and line.text.strip(" \t") in (start, end)}
     if active.get(first) != start or active.get(last) != end:
         raise UnsafeProjectError("Managed markers must occupy active top-level lines, outside examples or comments.")
     return first, last + len(end)
@@ -178,7 +228,8 @@ def _marker_span(text: str, start: str, end: str) -> Optional[tuple[int, int]]:
 
 def _validate_markers(text: str) -> None:
     # Even a file without markers must have a safe append context.
-    list(_markdown_lines(text))
+    if any(line.classification == "ambiguous" for line in list(_markdown_lines(text))):
+        raise UnsafeProjectError("Ambiguous or unsupported Markdown context. Simplify instruction markup before setup.")
     maintenance = _marker_span(text, START, END)
     imports = _marker_span(text, IMPORT_START, IMPORT_END)
     if maintenance and imports:
@@ -217,11 +268,23 @@ def update_managed_block(text: str, block: str) -> tuple[str, bool]:
     return _update_block(text, block, START, END)
 
 
-def _has_active_import(text: str, relative_target: str = "AGENTS.md") -> bool:
-    """Recognize prose and list imports by their path, outside code/comments."""
+def _classify_imports(text: str, relative_target: str = "AGENTS.md") -> Classification:
+    """Return active, inactive, or ambiguous after inspecting the whole file."""
     token = re.compile(r"(?<![\w@./\\])@((?:\.\.?/)*AGENTS\.md)(?![\w/\\-]|\.[\w.])")
-    return any(posixpath.normpath(match[1]) == relative_target
-               for _, line in _markdown_lines(text) for match in token.finditer(line))
+    lines = list(_markdown_lines(text))
+    if any(line.classification == "ambiguous" for line in lines):
+        return "ambiguous"
+    if any(posixpath.normpath(match[1]) == relative_target for line in lines
+           if line.classification == "active" for match in token.finditer(line.text)):
+        return "active"
+    return "inactive"
+
+
+def _has_active_import(text: str, relative_target: str = "AGENTS.md") -> bool:
+    classification = _classify_imports(text, relative_target)
+    if classification == "ambiguous":
+        raise UnsafeProjectError("Ambiguous or unsupported Markdown context. Simplify instruction markup before setup.")
+    return classification == "active"
 
 
 def _refuse_global_root(project_root: Path) -> None:

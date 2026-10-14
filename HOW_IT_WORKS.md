@@ -10,8 +10,8 @@ Public distribution remains `planned`. No official directory acceptance or publi
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `0d2af92` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 130 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, paragraph continuation imports, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `2e627f2` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 135 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
 | runtime verified | [Local client record](docs/verification/v0.1.0.md) on older candidate `25143ea` and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run. These trials do not verify this candidate's new behavior |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
@@ -59,13 +59,14 @@ sequenceDiagram
   Owner->>Agent: Explain this project
   Agent->>Setup: Project root and setup language
   Setup->>Project: Validate root and all existing instruction files
+  Setup->>Setup: Classify Markdown as active, inactive, or ambiguous
   alt Unsafe root, symlink, or ambiguous Markdown context
     Setup-->>Agent: Refuse setup with an error
     Agent-->>Owner: Report the blocked setup
   else Valid instruction files
     Setup->>Project: Stage all changes before replacements
     Setup->>Project: Update managed AGENTS.md block
-    opt Any existing Claude instruction file lacks the root import
+    opt Any existing Claude instruction file lacks a definitely active root import
       Setup->>Project: Add import with the correct relative path
     end
     Setup-->>Agent: Created, updated, unchanged, or absent
@@ -79,9 +80,19 @@ Repeated setup does not duplicate the managed block.
 The updater checks root `CLAUDE.md` and `.claude/CLAUDE.md` when they exist.
 Root instructions use `@AGENTS.md`. Nested instructions use `@../AGENTS.md`.
 If both files exist, setup checks and updates both. It reports `absent` only when neither exists.
-It preserves unrelated text and recognizes equivalent imports in prose and lists, outside code and comments.
-Indented code inside list or quote containers cannot supply active imports.
-Extra spaces in a wrapped paragraph do not turn its continuation into code. Those imports remain active.
+It preserves unrelated text and recognizes equivalent imports in supported prose and lists, outside code and comments.
+Setup classifies context as definitely active instructions, definitely inactive examples, or ambiguous markup.
+Standalone imports, inline prose, simple lists, and explicit quote/list paragraph continuations have support.
+Actual indented code remains inactive. Extra spaces in a supported paragraph continuation do not make its import inactive.
+
+Ambiguous or unsupported context stops setup before any file change.
+Lazy quote continuations, nested quote containers, and raw HTML blocks fall outside this parser's supported subset.
+A lazy quote continuation omits a quote marker on a later line. It is like a quotation with unclear closing punctuation.
+Simplify that markup before another setup run. A refusal does not report successful installation.
+
+Fences keep the containers and indentation of their opening line.
+Their contents cannot change list or paragraph state. A closing token permits at most three extra spaces inside those containers.
+Standalone link-reference definitions do not open paragraphs. Indented code after a definition cannot supply an active import.
 
 Managed markers must occupy separate lines at column one, outside code, comments, and list or quote examples.
 Setup refuses inactive, incomplete, duplicated, or overlapping markers before any write.
@@ -212,7 +223,7 @@ Directory submission is not runtime-verified. No file or local test proves publi
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed package candidate: local safety fixes based on `0d2af92`. This record does not identify a published release.
+Analyzed package candidate: local safety fixes based on `2e627f2`. This record does not identify a published release.
 The client trial record retains its older candidate revision `25143ea`.
 
 Last reviewed: 2026-10-14

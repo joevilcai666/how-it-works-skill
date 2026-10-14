@@ -182,6 +182,90 @@ class ProjectSetupTests(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertFalse(module._has_active_import(text))
 
+    def test_three_way_markdown_import_classification(self):
+        module = load_updater()
+        cases = (
+            ("@AGENTS.md\n", "active"),
+            ("Use @./AGENTS.md for rules.\n", "active"),
+            ("- @AGENTS.md\n", "active"),
+            ("> rules\n>     @AGENTS.md\n", "active"),
+            ("```md\n@AGENTS.md\n```\n", "inactive"),
+            (">     @AGENTS.md\n", "inactive"),
+            ("-     @AGENTS.md\n", "inactive"),
+            ("[rules]: /guide\n    @AGENTS.md\n", "inactive"),
+            ("> rules\n    @AGENTS.md\n", "ambiguous"),
+            ("> > rules\n    @AGENTS.md\n", "ambiguous"),
+            ("> > rules\n>     @AGENTS.md\n", "ambiguous"),
+        )
+        for text, expected in cases:
+            with self.subTest(text=text):
+                self.assertEqual(module._classify_imports(text), expected)
+
+    def test_fence_content_cannot_change_closing_indentation(self):
+        module = load_updater()
+        for text in ("```md\n- sample\n    ```\n",
+                     "~~~md\n1. sample\n    ~~~\n",
+                     "> ```md\n> - sample\n>     ```\n",
+                     "- ~~~md\n  1. sample\n      ~~~\n"):
+            with self.subTest(text=text):
+                with self.assertRaises(module.UnsafeProjectError):
+                    module._has_active_import(text)
+
+    def test_unsupported_html_cannot_own_managed_markers_or_hide_imports(self):
+        module = load_updater()
+        self.assertEqual(module._classify_imports("<pre>\n@AGENTS.md\n</pre>\n"), "ambiguous")
+        for target in (self.agents, self.claude):
+            with self.subTest(target=target.name):
+                self.agents.write_text("# Preserve agent rules\n")
+                self.claude.write_text("# Preserve Claude rules\n")
+                target.write_text("<div>\n" + START + "\nOld rules\n" + END + "\n</div>\n")
+                self.assert_refused_without_changes()
+
+    def test_ambiguous_or_unclosed_context_refuses_all_targets_and_repeat_runs(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        contexts = ("```md\n- sample\n    ```\n", "~~~md\n1. sample\n    ~~~\n",
+                    "> ```md\n> - sample\n>     ```\n", "- ~~~md\n  1. sample\n      ~~~\n",
+                    "> rules\n    @AGENTS.md\n", "> > rules\n    @AGENTS.md\n",
+                    "> > rules\n>     @AGENTS.md\n")
+        for target in (self.claude, nested):
+            for context in contexts:
+                with self.subTest(target=target.name, context=context):
+                    self.agents.unlink(missing_ok=True)
+                    self.claude.write_text("# Preserve root rules\n")
+                    nested.write_text("# Preserve nested rules\n")
+                    relative = "@../AGENTS.md" if target == nested else "@AGENTS.md"
+                    target.write_text(context.replace("@AGENTS.md", relative))
+                    before = {path: path.read_bytes() for path in (self.claude, nested)}
+                    for _ in range(2):
+                        result = run_setup(self.root)
+                        self.assertEqual(result.returncode, 2, result.stderr)
+                        self.assertEqual(result.stdout, "")
+                        self.assertRegex(result.stderr.lower(), "unclosed|ambiguous|unsupported")
+                        self.assertFalse(self.agents.exists())
+                        self.assertEqual({path: path.read_bytes() for path in before}, before)
+
+    def test_reference_definitions_and_closed_container_fences_get_real_import(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        for target in (self.claude, nested):
+            relative = "@../AGENTS.md" if target == nested else "@AGENTS.md"
+            for context in ("[rules]: /guide\n    " + relative + "\n",
+                            "```md\n- sample\n" + relative + "\n   ```\n",
+                            "~~~md\n1. sample\n" + relative + "\n   ~~~\n",
+                            "> ```md\n> - sample\n> " + relative + "\n> ```\n",
+                            "- ~~~md\n  1. sample\n  " + relative + "\n  ~~~\n"):
+                with self.subTest(target=target.name, context=context):
+                    self.claude.write_text("# Root rules\n")
+                    nested.write_text("# Nested rules\n")
+                    target.write_text(context)
+                    self.assertEqual(self.report(run_setup(self.root))["claude"], "updated")
+                    updated = {path: path.read_bytes() for path in (self.agents, self.claude, nested)}
+                    self.assertTrue(updated[target].startswith(context.encode()))
+                    self.assertTrue(updated[target].endswith((IMPORT_START + "\n" + relative + "\n" + IMPORT_END + "\n").encode()))
+                    self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+                    self.assertEqual({path: path.read_bytes() for path in updated}, updated)
+
     def test_inline_code_and_indented_code_imports_are_inactive(self):
         for original in ("Use `@AGENTS.md` as an example.\n", "``@./AGENTS.md``\n",
                          "    @AGENTS.md\n", "prefix<!-- @AGENTS.md -->suffix\n",
