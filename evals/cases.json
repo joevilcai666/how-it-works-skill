@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "common": {
+    "heading_groups": {
+      "position": ["product|position|purpose|产品|定位"],
+      "evidence": ["evidence|verified|status|证据|验证|状态"],
+      "workflow": ["workflow|request|behavior|flow|流程|请求|关系"],
+      "limits": ["limit|gap|constraint|限制|缺口|边界"],
+      "sources": ["source|review|reference|来源|核对|参考"]
+    },
+    "phrase_groups": {
+      "revision": ["revision|commit|版本|修订"],
+      "review-date": ["(?:reviewed|review|核对|更新)[^\\n]*2026-10-14"]
+    },
+    "evidence_groups": {
+      "code": ["code.{0,12}(?:verified|inspected|checked)", "代码.{0,8}(?:核对|验证|检查)"],
+      "test": ["test.{0,12}(?:verified|passed|checked)", "测试.{0,8}(?:验证|通过|核对)"],
+      "runtime": ["runtime.{0,12}(?:verified|evidence|absent|unverified)", "(?:真实运行|运行).{0,8}(?:验证|证据|缺失|未验证)"],
+      "acceptance": ["user.{0,12}(?:accepted|acceptance)", "用户.{0,8}验收"]
+    },
+    "min_mermaid": 2,
+    "min_local_links": 1
+  },
+  "cases": [
+    {
+      "id": "bootstrap-agent-product",
+      "description": "Bootstrap a product-owner explanation with all four evidence classes and three distinct diagrams.",
+      "request": "Explain how the synthetic Acorn Tasks fixture currently works for a nontechnical product owner. Inspect demo/acorn-tasks. Trace submit, complete, and list. Explain an agent workflow only if the code contains one. Separate code, tests, runtime, and acceptance. Write one HOW_IT_WORKS.md in English with local source links. Use review date 2026-10-14 and analyzed fixture revision synthetic-v1. Do not treat the fictional sample run as an actual execution.",
+      "min_mermaid": 3,
+      "phrase_groups": {
+        "synthetic-runtime-limit": ["synthetic|fictional|simulated"],
+        "acceptance-gap": ["(?:no|absent|unverified|missing)[^\\n]{0,80}(?:acceptance|accepted)", "(?:acceptance|accepted)[^\\n]{0,80}(?:absent|unverified|missing|no record)"]
+      }
+    },
+    {
+      "id": "static-no-runtime",
+      "description": "Explain static code and tests when no runtime record exists.",
+      "request": "Use the fixture source and test definitions only. For this scenario, assume runtime/sample-run.json is unavailable and no runtime or acceptance record exists. Explain the known behavior and the evidence gaps. Do not claim runtime success.",
+      "phrase_groups": {
+        "runtime-gap": ["(?:no|missing|absent|unavailable|unverified)[^\\n]{0,60}runtime", "runtime[^\\n]{0,60}(?:missing|absent|unavailable|unverified|no record)", "运行[^\\n]{0,30}(?:缺失|未验证|没有|不可用)"]
+      },
+      "forbidden_patterns": [
+        "(?:production|real[- ]channel|deployed|runtime|integration|delivery)[^\\n.]{0,50}(?:succeeded|successful|confirmed|passed)",
+        "runtime verified\\s*:\\s*(?!no\\b|absent\\b|unverified\\b|not\\b|missing\\b)[a-z]",
+        "(?:真实运行|生产环境|真实渠道)[^\\n。]{0,20}(?:成功|已通过)"
+      ]
+    },
+    {
+      "id": "conflicting-sources",
+      "description": "Name the conflicting source claims and the selected authority.",
+      "request": "Scenario override: an old README promises disk persistence. The current product decision in docs/product.md requires process memory, and current source uses process memory. Explain this source conflict and name the selected authority. Do not change the actual demo files.",
+      "phrase_groups": {
+        "conflict": ["conflict|contradict|disagree|冲突|矛盾"],
+        "authority": ["(?:authority|authoritative|selected source|takes precedence)[^\\n]{0,100}(?:product\\.md|product requirement|product decision)", "(?:product\\.md|product requirement|product decision)[^\\n]{0,100}(?:authority|authoritative|takes precedence)", "(?:依据|权威|优先)[^\\n]{0,80}product\\.md"],
+        "conflicting-source": ["README|旧说明"],
+        "storage-decision": ["process memory|memory storage|内存"]
+      }
+    },
+    {
+      "id": "non-agent-product",
+      "description": "Reject invented agent loops and long-term memory sections in an ordinary service.",
+      "request": "Explain this ordinary task service. Its code has no model, agent loop, or long-term memory. Do not invent agent or memory sections. An explicit sentence about their absence is appropriate.",
+      "forbidden_patterns": [
+        "^#{1,6}\\s+[^\\n]*(?:agent (?:loop|memory)|long[- ]term memory|memory system|智能体循环|代理循环|长期记忆)",
+        "\\bthe agent (?:plans|retries|remembers|reflects|delegates)\\b",
+        "(?:智能体|代理)(?:会|负责|执行)(?:规划|重试|反思|记忆)"
+      ]
+    },
+    {
+      "id": "refresh-current-state",
+      "description": "Use only current state and remove obsolete storage limitations.",
+      "request": "Hypothetical refresh scenario, separate from synthetic-v1: current approved source and tests now specify SQLite storage and restart recovery. The old HOW_IT_WORKS.md says tasks disappear after restart and the inbox has no disk storage. Refresh that document to describe the hypothetical current state. Remove those stale limits. Do not add a change log. Do not claim that synthetic-v1 already uses SQLite.",
+      "phrase_groups": {
+        "persistent-current-state": ["SQLite|persist|survive[^\\n]{0,30}restart|持久|重启.{0,20}(?:恢复|保留)"]
+      },
+      "forbidden_patterns": [
+        "^#{1,6}\\s+[^\\n]*(?:change ?log|change history|what changed|变更历史|变更记录|更新日志)",
+        "tasks disappear (?:when the process ends|after (?:a )?restart)",
+        "(?:inbox|service) has no disk storage",
+        "(?:任务|数据)[^\\n。]{0,15}重启后[^\\n。]{0,10}丢失"
+      ]
+    },
+    {
+      "id": "bilingual-zh-cn",
+      "description": "Use Chinese prose and headings while retaining technical identifiers.",
+      "request": "请用中文说明这个虚构任务服务的当前行为。保留 TaskInbox、synthetic-v1 和文件路径等技术标识。区分代码、测试、真实运行和用户验收。说明证据缺口。使用中文标题，不要添加平行英文版本。最后核对日期为 2026-10-14。",
+      "language": "zh-CN"
+    }
+  ]
+}

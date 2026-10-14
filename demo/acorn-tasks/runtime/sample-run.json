@@ -1,0 +1,26 @@
+{
+  "synthetic": true,
+  "revision": "synthetic-v1",
+  "environment": "fictional-local-demo",
+  "run_id": "demo-run-001",
+  "date": "2026-10-12",
+  "actor": "Mira Acorn",
+  "events": [
+    {
+      "action": "submit",
+      "input": {"title": "Fold a blue kite"},
+      "output": {"id": "task-001", "title": "Fold a blue kite", "status": "pending"}
+    },
+    {
+      "action": "complete",
+      "input": {"id": "task-001"},
+      "output": {"id": "task-001", "title": "Fold a blue kite", "status": "complete"}
+    },
+    {
+      "action": "list_tasks",
+      "input": {},
+      "output": [{"id": "task-001", "title": "Fold a blue kite", "status": "complete"}]
+    }
+  ],
+  "acceptance": null
+}
