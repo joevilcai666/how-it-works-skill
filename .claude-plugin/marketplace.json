@@ -1,5 +1,6 @@
 {
   "name": "how-it-works-skill",
+  "description": "Skills for product explanations from local code and evidence.",
   "owner": {
     "name": "How It Works Contributors"
   },
