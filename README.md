@@ -29,6 +29,8 @@ flowchart LR
 ## Five-minute first use
 
 Use an Agent Skills client with repository access and Python 3.9 or later.
+The `npx` route also requires Node.js and npm.
+Without `npx`, use [manual installation](#manual-install).
 Install the main skill:
 
 ```bash
@@ -95,6 +97,8 @@ Run these commands in Claude Code:
 Use the loaded skill through the client's skill menu or supported invocation syntax.
 The package includes a Claude manifest and a repository marketplace.
 Local strict manifest validation does not prove a successful client session.
+
+<a id="manual-install"></a>
 
 ### Generic Agent Skills clients: manual copy
 

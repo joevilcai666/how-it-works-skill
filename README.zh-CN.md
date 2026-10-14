@@ -29,6 +29,8 @@ flowchart LR
 ## 五分钟开始使用
 
 准备支持 Agent Skills 的客户端、仓库访问权限，以及 Python 3.9 或更高版本。
+`npx` 安装方式还需要 Node.js 和 npm。
+如果没有 `npx`，请使用[手动安装](#manual-install)。
 安装主技能：
 
 ```bash
@@ -95,6 +97,8 @@ Codex 兼容文件和仓库市场指向同一个 `skills/` 目录。
 通过客户端的技能菜单或支持的调用语法使用技能。
 仓库包含 Claude 插件文件和市场文件。
 本地严格格式验证不等于真实客户端使用成功。
+
+<a id="manual-install"></a>
 
 ### 通用 Agent Skills 客户端：手动复制
 

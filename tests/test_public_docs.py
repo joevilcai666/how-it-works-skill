@@ -35,6 +35,15 @@ class PublicDocsTests(unittest.TestCase):
                     self.assertIn(outcome, text[:first])
                 self.assertIn(first_use, text[first:text.index("\n## ", first + 1)])
 
+    def test_recommended_npx_route_names_requirements_and_manual_fallback(self):
+        for name in ("README.md", "README.zh-CN.md"):
+            with self.subTest(name=name):
+                text = self.read(name)
+                requirements = text[:text.index("npx skills add")]
+                for value in ("Node.js", "npm", "(#manual-install)"):
+                    self.assertIn(value, requirements)
+                self.assertIn('<a id="manual-install"></a>', text)
+
     def test_readmes_include_install_routes_first_use_and_demo(self):
         for name in ("README.md", "README.zh-CN.md"):
             with self.subTest(name=name):
