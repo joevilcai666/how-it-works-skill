@@ -6,10 +6,13 @@ Public GitHub installs passed in isolated Codex, Claude Code, and generic instal
 No official directory submission or directory approval exists in this record.
 An install result does not prove a directory entry or a successful document run.
 
-## Local patch candidate
+## Release snapshot evidence
 
-v0.1.1 is a local candidate for the OpenAI desktop-only metadata fix.
-No v0.1.1 push, tag, release, submission, or publication exists.
+The v0.1.1 release snapshot contains the OpenAI desktop-only metadata fix and local package validation.
+Its evidence covers pre-publication verification.
+Evidence of public release, installation, and directory status belongs in this register on `main` after external actions.
+This immutable snapshot does not assert v0.1.1 public availability.
+No clean v0.1.1 desktop install, model run, or portal acceptance existed at snapshot verification time.
 Its [release notes](releases/v0.1.1.md) describe the local package and evidence limits.
 Root `plugin.json` declares `requires_local_executor: true` under `extensions.com.openai`.
 The Codex overlay declares the field at its top level because the skills call a bundled local Python updater.
@@ -74,8 +77,8 @@ OpenAI's current official flow uses a ZIP upload at its submission portal.
 The UI attempt failed before an authenticated portal or a submission form opened.
 Developer identity, organization access, terms, automated package checks, and publication remain unverified.
 The [desktop-only guide](https://developers.openai.com/plugins/deploy/desktop-only) requires `requires_local_executor: true` for skills that require desktop execution.
-The v0.1.0 tagged manifest does not declare that field. The local v0.1.1 candidate declares it in both required manifest locations.
-Directory eligibility and a clean desktop installation of v0.1.1 remain unverified. The released tag remains fixed.
+The v0.1.0 tagged manifest does not declare that field. The v0.1.1 release snapshot declares it in both required manifest locations.
+Directory eligibility and a clean desktop installation of v0.1.1 lacked evidence at snapshot verification time. The v0.1.0 tag remains fixed.
 Do not mark this channel submitted from the existence of a ZIP.
 
 Anthropic's [current submission guide](https://clau.de/plugin-directory-submission) directs authors to the developer portal.
@@ -111,4 +114,4 @@ The isolated npx main-skill removal exited 0 and left its installed directory ab
 This release verification did not execute an update against a newer release.
 See [client commands and evidence limits](verification/v0.1.0.md).
 
-Last register review: 2026-10-14.
+Last register review: 2026-10-15. Historical channel observations retain their stated dates.

@@ -74,7 +74,7 @@ class PublicDocsTests(unittest.TestCase):
         text = self.read("HOW_IT_WORKS.md")
         self.assertEqual(text.count("```mermaid\n"), 3)
         for value in ("code verified", "test verified", "runtime verified", "user accepted",
-                      "Module responsibilities", "Limitations", "Last reviewed: 2026-10-14",
+                      "Module responsibilities", "Limitations", "Last reviewed: 2026-10-15",
                       "AGENTS.md", "CLAUDE.md", "planned", "6 of 7", "Python 3.9"):
             self.assertIn(value, text)
 
@@ -82,14 +82,19 @@ class PublicDocsTests(unittest.TestCase):
         text = self.read("docs/distribution.md")
         self.assert_distribution_table(text)
 
-    def test_patch_candidate_documents_local_execution_and_evidence_limits(self):
-        for name in ("HOW_IT_WORKS.md", "docs/distribution.md", "docs/releases/v0.1.1.md"):
+    def test_release_snapshot_documents_local_execution_and_evidence_limits(self):
+        for name in ("HOW_IT_WORKS.md", "docs/distribution.md", "docs/releases/v0.1.1.md", "CHANGELOG.md"):
             with self.subTest(name=name):
                 text = self.read(name)
-                for value in ("v0.1.1", "local candidate", "requires_local_executor", "v0.1.0"):
+                for value in ("v0.1.1", "release snapshot", "pre-publication verification",
+                              "requires_local_executor", "v0.1.0", "`main`"):
                     self.assertIn(value, text)
-                self.assertIn("https://developers.openai.com/plugins/deploy/desktop-only", text)
-                self.assertIn("No v0.1.1 push, tag, release, submission, or publication", text)
+                self.assertNotIn("local candidate", text)
+                self.assertNotIn("No v0.1.1 push, tag, release, submission, or publication", text)
+                self.assertNotIn("public release remains", text.lower())
+                self.assertIn("at snapshot verification time", text)
+                if name != "CHANGELOG.md":
+                    self.assertIn("https://developers.openai.com/plugins/deploy/desktop-only", text)
         changelog = self.read("CHANGELOG.md")
         self.assertLess(changelog.index("## 0.1.1"), changelog.index("## 0.1.0"))
 

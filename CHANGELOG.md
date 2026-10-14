@@ -2,13 +2,15 @@
 
 ## 0.1.1
 
-Local candidate for the OpenAI desktop-only metadata fix.
-No v0.1.1 push, tag, release, submission, or publication exists.
+The v0.1.1 release snapshot contains the OpenAI desktop-only metadata fix and local package validation.
+Its evidence covers pre-publication verification.
+Evidence of public release, installation, and directory status belongs in the mutable records on `main` after external actions.
+No clean v0.1.1 desktop install, model run, or portal acceptance existed at snapshot verification time.
 
 - Declare `requires_local_executor: true` in the portable OpenAI extension and the Codex overlay.
 - Keep version 0.1.1 consistent across manifests, the Claude marketplace, and both skill metadata blocks.
 - Require the local execution declarations and version parity in package checks.
-- State the candidate's local verification limits separately from public v0.1.0 evidence.
+- State the snapshot's local verification limits separately from public v0.1.0 evidence.
 
 ## 0.1.0
 
