@@ -13,11 +13,11 @@ Evidence classes describe different kinds of proof. A class does not automatical
 | --- | --- | --- | --- |
 | Submit, complete, and list paths exist | code verified | [TaskInbox](../acorn-tasks/src/acorn_tasks.py), `synthetic-v1`, local source inspection | No deployed service |
 | State, duplicate actions, errors, and restart pass local checks | test verified | [Unit tests](../acorn-tasks/tests/test_acorn_tasks.py), `synthetic-v1`, Python 3.9.6 on macOS arm64, 9 tests passed on 2026-10-14 | No deployed scenario or acceptance proof |
-| Recorded submit, complete, and list effects | runtime verified: simulated only | [Sample run](../acorn-tasks/runtime/sample-run.json), `synthetic-v1`, fictional-local-demo, 2026-10-12 | This fictional record is not evidence of actual execution |
+| Recorded submit, complete, and list effects | runtime evidence: absent — fictional sample only | [Sample run](../acorn-tasks/runtime/sample-run.json), `synthetic-v1`, fictional-local-demo, 2026-10-12 | This fictional record is not evidence of actual execution |
 | Product-owner acceptance | user accepted: absent | No acceptance record exists | Explicit acceptance with a scenario, version, and date remains absent |
 
-The runtime label demonstrates classification, with its synthetic limit beside the claim.
-It does not assert real integration success. User acceptance remains unverified.
+The runtime label states the evidence gap. The fictional record only demonstrates the format.
+User acceptance remains unverified.
 
 ## Overall behavior
 

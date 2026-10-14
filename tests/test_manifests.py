@@ -1,6 +1,9 @@
 from pathlib import Path
 import json
 import subprocess
+import shutil
+import tempfile
+import re
 import unittest
 import xml.etree.ElementTree as ET
 
@@ -63,6 +66,19 @@ class ManifestTests(unittest.TestCase):
         for key, path in (("composerIcon", "./assets/icon.svg"), ("logo", "./assets/logo.svg")):
             self.assertEqual(interface[key], path)
             self.assertTrue((ROOT / interface[key]).is_file())
+
+    def test_standalone_skill_icon_assets_resolve_inside_install(self):
+        with tempfile.TemporaryDirectory() as directory:
+            installed = Path(directory) / "how-it-works"
+            shutil.copytree(ROOT / "skills/how-it-works", installed)
+            metadata = (installed / "agents/openai.yaml").read_text()
+            declarations = re.findall(r'^\s*icon_(?:small|large):\s*"([^"\n]+)"', metadata, re.MULTILINE)
+            self.assertEqual(len(declarations), 2)
+            for declaration in declarations:
+                asset = (installed / declaration).resolve()
+                self.assertIn(installed.resolve(), asset.parents)
+                self.assertTrue(asset.is_file())
+                ET.parse(asset)
 
     def test_svg_assets_are_square_and_self_contained(self):
         for name in ("icon.svg", "logo.svg"):

@@ -48,8 +48,9 @@ $how-it-works
 ```
 
 首次执行会把项目维护规则加入 `AGENTS.md`，并保留其他指令。
-如果项目已有 `CLAUDE.md`，程序会在需要时加入 `@AGENTS.md` 引用。
-程序不会创建 `CLAUDE.md`，也不会修改全局指令。
+如果项目已有 Claude 项目指令，程序会在需要时加入根目录 `AGENTS.md` 的引用。
+根目录 `CLAUDE.md` 使用 `@AGENTS.md`。`.claude/CLAUDE.md` 使用 `@../AGENTS.md`。
+如果两个文件都存在，程序会检查并更新两者。程序不会创建这两个文件，也不会修改全局指令。
 随后，Agent 按你的语言创建或更新项目根目录的 `HOW_IT_WORKS.md`。
 大型仓库的分析可能超过五分钟。
 

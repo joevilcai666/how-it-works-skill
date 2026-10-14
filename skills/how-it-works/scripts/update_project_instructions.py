@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 import json
 import os
 from pathlib import Path
+import posixpath
 import re
 import stat
 import sys
@@ -17,7 +18,7 @@ START = "<!-- how-it-works:start -->"
 END = "<!-- how-it-works:end -->"
 IMPORT_START = "<!-- how-it-works:claude-import:start -->"
 IMPORT_END = "<!-- how-it-works:claude-import:end -->"
-IMPORT_BLOCK = IMPORT_START + "\n@AGENTS.md\n" + IMPORT_END
+MARKERS = (START, END, IMPORT_START, IMPORT_END)
 ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
 
@@ -44,6 +45,69 @@ def find_project_root(start: Path) -> Path:
     raise UnsafeProjectError("No Git root found. Supply --project-root explicitly.")
 
 
+def _markdown_lines(text: str):
+    """Yield offsets and active text. Refuse contexts that can hide new rules."""
+    fence = None
+    comment = False
+    inline_until = 0
+    offset = 0
+    for raw in text.splitlines(keepends=True):
+        line = raw.rstrip("\r\n")
+        # Container prefixes cannot make marker ownership top-level. They can
+        # still introduce fences whose contents must not supply active imports.
+        content = re.sub(r"^ {0,3}(?:> ?)+", "", line)
+        content = re.sub(r"^ {0,3}(?:[-+*]|\d+[.)]) +", "", content)
+        if inline_until > offset and inline_until >= offset + len(line):
+            yield offset, ""
+        elif fence is not None:
+            closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", content)
+            if closing and closing[1][0] == fence[0] and len(closing[1]) >= len(fence):
+                fence = None
+            yield offset, ""
+        elif not comment and inline_until <= offset and re.match(r"^(?: {4}|\t)", line):
+            yield offset, ""
+        elif not comment and inline_until <= offset and re.match(r"^ {0,3}(`{3,}|~{3,})", content):
+            fence = re.match(r"^ {0,3}(`{3,}|~{3,})", content)[1]
+            yield offset, ""
+        elif not comment and inline_until <= offset and line.rstrip(" \t") in MARKERS:
+            # An owned delimiter is itself an HTML comment. Keep only exact,
+            # standalone, top-level delimiters visible to the marker parser.
+            yield offset, line
+        else:
+            visible = []
+            cursor = max(0, inline_until - offset)
+            while cursor < len(line):
+                if comment:
+                    end = line.find("-->", cursor)
+                    if end < 0:
+                        break
+                    cursor, comment = end + 3, False
+                elif line.startswith("<!--", cursor):
+                    cursor, comment = cursor + 4, True
+                    visible.append(" ")
+                elif line[cursor] == "`":
+                    token = re.match(r"`+", line[cursor:])[0]
+                    remaining = text[offset + cursor + len(token):]
+                    # A code span can cross a soft line break, but cannot cross
+                    # a blank paragraph boundary.
+                    remaining = re.split(r"(?:\r\n|\n|\r)[ \t]*(?:\r\n|\n|\r)", remaining, maxsplit=1)[0]
+                    closing = re.search(r"(?<!`)" + re.escape(token) + r"(?!`)", remaining)
+                    if closing:
+                        cursor += len(token) + closing.end()
+                        inline_until = offset + cursor
+                        visible.append(" ")
+                    else:
+                        visible.append(token)
+                        cursor += len(token)
+                else:
+                    visible.append(line[cursor])
+                    cursor += 1
+            yield offset, "".join(visible)
+        offset += len(raw)
+    if fence is not None or comment:
+        raise UnsafeProjectError("Instruction file has an unclosed Markdown fence or HTML comment.")
+
+
 def _marker_span(text: str, start: str, end: str) -> Optional[tuple[int, int]]:
     counts = (text.count(start), text.count(end))
     if counts == (0, 0):
@@ -53,13 +117,16 @@ def _marker_span(text: str, start: str, end: str) -> Optional[tuple[int, int]]:
     first, last = text.index(start), text.index(end)
     if first >= last:
         raise UnsafeProjectError("Managed markers are in the wrong order.")
-    for marker in (start, end):
-        if not any(line.strip(" \t") == marker for line in text.splitlines()):
-            raise UnsafeProjectError("Managed markers must occupy separate lines.")
+    active = {offset + len(line) - len(line.lstrip(" ")): line.strip(" \t")
+              for offset, line in _markdown_lines(text) if line.strip(" \t") in (start, end)}
+    if active.get(first) != start or active.get(last) != end:
+        raise UnsafeProjectError("Managed markers must occupy active top-level lines, outside examples or comments.")
     return first, last + len(end)
 
 
 def _validate_markers(text: str) -> None:
+    # Even a file without markers must have a safe append context.
+    list(_markdown_lines(text))
     maintenance = _marker_span(text, START, END)
     imports = _marker_span(text, IMPORT_START, IMPORT_END)
     if maintenance and imports:
@@ -98,51 +165,11 @@ def update_managed_block(text: str, block: str) -> tuple[str, bool]:
     return _update_block(text, block, START, END)
 
 
-def _has_active_import(text: str) -> bool:
-    # Claude imports in comments or Markdown code fences are examples, not rules.
-    fence = None
-    comment = False
-    found = False
-    for line in text.splitlines():
-        if fence is not None:
-            closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", line)
-            if closing:
-                token = closing.group(1)
-                if token[0] == fence[0] and len(token) >= len(fence):
-                    fence = None
-            continue
-        if not comment:
-            opening = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
-            if opening:
-                fence = opening.group(1)
-                continue
-        visible = []
-        cursor = 0
-        while cursor < len(line):
-            if comment:
-                end = line.find("-->", cursor)
-                if end < 0:
-                    break
-                cursor = end + 3
-                comment = False
-            else:
-                start = line.find("<!--", cursor)
-                if start < 0:
-                    visible.append(line[cursor:])
-                    break
-                visible.append(line[cursor:start])
-                cursor = start + 4
-                comment = True
-        line = "".join(visible)
-        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
-        if marker:
-            fence = marker.group(1)
-            continue
-        if line.strip() == "@AGENTS.md":
-            found = True
-    if fence is not None or comment:
-        raise UnsafeProjectError("CLAUDE.md has an unclosed Markdown fence or HTML comment.")
-    return found
+def _has_active_import(text: str, relative_target: str = "AGENTS.md") -> bool:
+    """Recognize prose and list imports by their path, outside code/comments."""
+    token = re.compile(r"(?<![\w@./\\])@((?:\.\.?/)*AGENTS\.md)(?![\w/\\-]|\.[\w.])")
+    return any(posixpath.normpath(match[1]) == relative_target
+               for _, line in _markdown_lines(text) for match in token.finditer(line))
 
 
 def _refuse_global_root(project_root: Path) -> None:
@@ -199,7 +226,7 @@ def _atomic_writes(changes: list[tuple[Path, Optional[bytes], bytes]]) -> None:
 
 
 def apply_setup(project_root: Path, language: str, dry_run: bool = False) -> SetupReport:
-    """Validate both targets, calculate their changes, then write atomically."""
+    """Validate all targets, then stage content before file replacements."""
     if language not in ("en", "zh-CN"):
         raise UnsafeProjectError("Language must be en or zh-CN.")
     if project_root.is_symlink():
@@ -209,8 +236,11 @@ def apply_setup(project_root: Path, language: str, dry_run: bool = False) -> Set
     if not project_root.is_dir():
         raise UnsafeProjectError("Project root must be an existing directory.")
     agents_path = project_root / "AGENTS.md"
-    claude_path = project_root / "CLAUDE.md"
-    originals = {path: _read_target(path) for path in (agents_path, claude_path)}
+    claude_directory = project_root / ".claude"
+    if claude_directory.is_symlink():
+        raise UnsafeProjectError("Refuse symlink instruction directory: .claude")
+    claude_paths = (project_root / "CLAUDE.md", claude_directory / "CLAUDE.md")
+    originals = {path: _read_target(path) for path in (agents_path, *claude_paths)}
     block = (ASSETS / f"maintenance-block.{language}.md").read_text(encoding="utf-8")
     _validate_markers(block)
     agents_text = (originals[agents_path] or b"").decode("utf-8")
@@ -220,11 +250,16 @@ def apply_setup(project_root: Path, language: str, dry_run: bool = False) -> Set
     if changed:
         changes.append((agents_path, originals[agents_path], updated_agents.encode("utf-8")))
     claude_status = "absent"
-    if originals[claude_path] is not None:
+    for claude_path in claude_paths:
+        if originals[claude_path] is None:
+            continue
         claude_text = originals[claude_path].decode("utf-8")
-        claude_status = "unchanged"
-        if not _has_active_import(claude_text):
-            updated_claude, changed = _update_block(claude_text, IMPORT_BLOCK, IMPORT_START, IMPORT_END)
+        if claude_status == "absent":
+            claude_status = "unchanged"
+        relative_target = "AGENTS.md" if claude_path.parent == project_root else "../AGENTS.md"
+        if not _has_active_import(claude_text, relative_target):
+            import_block = IMPORT_START + "\n@" + relative_target + "\n" + IMPORT_END
+            updated_claude, changed = _update_block(claude_text, import_block, IMPORT_START, IMPORT_END)
             if changed:
                 claude_status = "updated"
                 changes.append((claude_path, originals[claude_path], updated_claude.encode("utf-8")))

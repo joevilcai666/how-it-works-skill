@@ -3,6 +3,7 @@
 
 import argparse
 from html import unescape
+import io
 import json
 from pathlib import Path
 import re
@@ -178,8 +179,22 @@ def css_urls(value):
         elif character in "\"'":
             _, position = string(position)
         elif character in "#@" and position + 1 < len(value):
-            # Hash and at-keyword tokens do not become URL functions.
-            _, position = name(position + 1)
+            # Only an import at-keyword consumes a following string as a URL.
+            # Other at-keywords and hash tokens do not become URL functions.
+            token, position = name(position + 1)
+            if character == "@" and token.lower() == "import":
+                while position < len(value):
+                    if value[position] in whitespace:
+                        position += 1
+                    elif value.startswith("/*", position):
+                        end = value.find("*/", position + 2)
+                        position = len(value) if end < 0 else end + 2
+                    else:
+                        break
+                if position < len(value) and value[position] in "\"'":
+                    reference, position = string(position)
+                    if reference is not None:
+                        references.append(reference)
         elif name_character(character) or (character == "\\" and position + 1 < len(value) and value[position + 1] not in "\r\n\f"):
             token, position = name(position)
             if token.lower() == "url" and position < len(value) and value[position] == "(":
@@ -199,6 +214,8 @@ def scan_svg(text, path, commit=None):
         return [finding("svg-invalid", path, commit=commit)]
     result = []
     resources = {"image", "feimage", "use", "script", "mpath", "textpath", "tref"}
+    html_references = {"src", "href", "poster", "data", "action", "formaction", "background",
+                       "cite", "longdesc", "manifest", "codebase"}
 
     def external(reference, base):
         resolved = urljoin(base, reference.strip())
@@ -206,13 +223,30 @@ def scan_svg(text, path, commit=None):
         return (bool(parsed.scheme and parsed.scheme.lower() != "data") or bool(parsed.netloc)
                 or resolved.startswith("/"))
 
-    def visit(node, inherited_base):
+    def check_reference(reference, base):
+        if external(reference, base):
+            index = text.find(reference)
+            line = 1 + text.count("\n", 0, max(index, 0))
+            result.append(finding("svg-external-image", path, line, commit))
+
+    def visit(node, inherited_base, in_foreign=False):
         base = urljoin(inherited_base, node.get("{http://www.w3.org/XML/1998/namespace}base", ""))
         tag = node.tag.rsplit("}", 1)[-1].lower()
+        in_foreign = in_foreign or tag == "foreignobject"
         references = []
         if tag in resources:
             references.extend(value for key, value in node.attrib.items()
                               if key.rsplit("}", 1)[-1].lower() == "href")
+        if in_foreign:
+            for key, value in node.attrib.items():
+                attribute = key.rsplit("}", 1)[-1].lower()
+                if attribute in html_references:
+                    references.append(value)
+                elif attribute in {"srcset", "imagesrcset"}:
+                    references.extend(candidate.strip().split()[0] for candidate in value.split(",")
+                                      if candidate.strip())
+                elif attribute in {"archive", "ping"}:
+                    references.extend(value.split())
         # CSS URLs can also load images, fonts, filters, and masks.
         css_values = list(node.attrib.values())
         if tag == "style":
@@ -220,16 +254,22 @@ def scan_svg(text, path, commit=None):
         for value in css_values:
             references.extend(css_urls(value))
         for reference in references:
-            if external(reference, base):
-                index = text.find(reference)
-                line = 1 + text.count("\n", 0, max(index, 0))
-                result.append(finding("svg-external-image", path, line, commit))
+            check_reference(reference, base)
         for child in node:
-            visit(child, base)
+            visit(child, base, in_foreign)
 
     try:
+        # ElementTree's default tree omits processing instructions, including
+        # those before the root. Read PI events without fetching resources.
+        for _, instruction in ET.iterparse(io.StringIO(text), events=("pi",)):
+            target, _, attributes = (instruction.text or "").partition(" ")
+            if target.lower() == "xml-stylesheet":
+                stylesheet = ET.fromstring("<stylesheet " + attributes + "/>")
+                for key, value in stylesheet.attrib.items():
+                    if key.rsplit("}", 1)[-1].lower() == "href":
+                        check_reference(value, "")
         visit(root, "")
-    except ValueError:
+    except (ValueError, ET.ParseError):
         result.append(finding("svg-invalid", path, commit=commit))
     return result
 
@@ -257,39 +297,28 @@ def scan_bytes(data, path, commit=None):
 
 
 def scan_history(root):
-    # Custom format excludes author identity and commit messages from the stream.
-    patch = git(root, "log", "--all", "-p", "-m", "--no-ext-diff", "--no-textconv",
-                "--format=SCAN-COMMIT:%H", "--no-renames", "--unified=0").decode("utf-8", errors="replace")
+    """Inspect each reachable tree entry with NUL-safe filenames and blob data."""
     result = []
-    commit = None
-    path = "[history]"
-    old_line = new_line = 1
-    for line in patch.splitlines():
-        if line.startswith("SCAN-COMMIT:"):
-            commit = line.split(":", 1)[1]
-        elif line.startswith("--- a/"):
-            path = line[6:]
-        elif line.startswith("+++ b/"):
-            path = line[6:]
-        elif line.startswith("@@ "):
-            hunk = re.match(r"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
-            if hunk:
-                old_line, new_line = int(hunk[1]), int(hunk[2])
-        elif line.startswith(("+", "-")) and not line.startswith(("+++", "---")):
-            number = new_line if line[0] == "+" else old_line
-            result.extend(scan_text(line[1:], path, commit, max(number, 1)))
-            if line[0] == "+":
-                new_line += 1
-            else:
-                old_line += 1
-    # Git patches omit binary payloads. Inspect every reachable blob by type,
-    # regardless of the displayed filename. PNG checks use the file signature.
-    for entry in git(root, "rev-list", "--objects", "--all").decode("utf-8", errors="replace").splitlines():
-        object_id, _, name = entry.partition(" ")
-        if git(root, "cat-file", "-t", object_id).strip() != b"blob":
-            continue
-        data = git(root, "cat-file", "blob", object_id)
-        result.extend(scan_bytes(data, name or "[history blob]", object_id))
+    seen = set()
+    blobs = {}
+    for commit in git(root, "rev-list", "--all").decode("ascii").splitlines():
+        for entry in git(root, "ls-tree", "-r", "-z", "--full-tree", commit).split(b"\0"):
+            if not entry:
+                continue
+            metadata, raw_name = entry.split(b"\t", 1)
+            mode, kind, object_id = metadata.split()
+            name = raw_name.decode("utf-8", errors="surrogateescape")
+            identity = (mode, object_id, raw_name)
+            if identity in seen:
+                continue
+            seen.add(identity)
+            result.extend(scan_text(name, name, commit))
+            if mode == b"120000":
+                result.append(finding("symlink", name, commit=commit))
+            if kind == b"blob":
+                if object_id not in blobs:
+                    blobs[object_id] = git(root, "cat-file", "blob", object_id.decode("ascii"))
+                result.extend(scan_bytes(blobs[object_id], name, commit))
     return result
 
 

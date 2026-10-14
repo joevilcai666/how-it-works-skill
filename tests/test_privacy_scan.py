@@ -113,6 +113,106 @@ class PrivacyScanTests(unittest.TestCase):
         self.assertTrue(any(item.get("commit") == commit and item["path"] == "deleted.md"
                             for item in findings))
 
+    def test_history_scans_deleted_and_renamed_names_with_same_blob(self):
+        email = "private-person" + "@" + "example.invalid"
+        private_path = chr(92).join(("C:", "Users", "private-person", "notes.md"))
+        names = (email + "\nnotes.md", private_path, "safe.md", "same-blob.svg")
+        for name in names:
+            (self.root / name).write_text("<svg/>\n")
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic named fixtures")
+        first = git(self.root, "rev-parse", "HEAD").stdout.decode().strip()
+        renamed = email + "-renamed.md"
+        git(self.root, "mv", names[0], renamed)
+        git(self.root, "commit", "-qm", "rename fixture")
+        second = git(self.root, "rev-parse", "HEAD").stdout.decode().strip()
+        for name in (renamed, *names[1:]):
+            (self.root / name).unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove fixtures")
+        self.assertEqual(self.scan()[0].returncode, 0)
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertTrue(any(item["rule"] == "email" and item.get("commit") == first for item in findings))
+        self.assertTrue(any(item["rule"] == "email" and item.get("commit") == second for item in findings))
+        self.assertTrue(any(item["rule"] == "home-path" and item.get("commit") in (first, second) for item in findings))
+        self.assertNotIn(email, result.stdout + result.stderr)
+        self.assertNotIn(private_path, result.stdout + result.stderr)
+
+    def test_history_scans_each_name_for_one_blob(self):
+        for name in ("plain.txt", "vector.svg"):
+            (self.root / name).write_text("not an SVG\n")
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "same blob with two names")
+        (self.root / "vector.svg").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove vector")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertTrue(any(item["rule"] == "svg-invalid" and item["path"] == "vector.svg"
+                            and item.get("commit") for item in findings))
+
+    def test_svg_additional_resource_channels_fail_current_and_history(self):
+        url = "https" + "://" + "example.invalid" + "/asset"
+        cases = [
+            '<svg><style>@import "' + url + '";</style></svg>',
+            '<svg><style>@im' + chr(92) + '70ort/**/"' + url + '";</style></svg>',
+            '<?xml-stylesheet type="text/css" href="' + url + '"?><svg/>',
+            '<svg xmlns:h="http://www.w3.org/1999/xhtml"><foreignObject><h:img src="' + url + '"/></foreignObject></svg>',
+            '<svg xmlns:x="urn:synthetic"><foreignObject><img x:src="' + url + '"/></foreignObject></svg>',
+            '<svg><foreignObject><link href="' + url + '"/><video poster="' + url + '"/></foreignObject></svg>',
+            '<svg xml:base="' + url + '/"><foreignObject><iframe src="relative.html"/></foreignObject></svg>',
+            '<svg><foreignObject><img srcset="local.png 1x, ' + url + ' 2x"/></foreignObject></svg>',
+            '<svg><foreignObject><object data="' + url + '"/></foreignObject></svg>',
+        ]
+        for index, text in enumerate(cases):
+            name = "channel-" + str(index) + ".svg"
+            (self.root / name).write_text(text)
+            result, findings = self.scan()
+            with self.subTest(channel=index, scope="current"):
+                self.assertEqual(result.returncode, 1, name)
+                self.assertTrue(any(item["rule"] == "svg-external-image" and item["path"] == name for item in findings), name)
+            git(self.root, "add", name)
+            git(self.root, "commit", "-qm", "synthetic SVG channel")
+            (self.root / name).unlink()
+            git(self.root, "add", "-u")
+            git(self.root, "commit", "-qm", "remove SVG channel")
+            result, findings = self.scan(history=True)
+            with self.subTest(channel=index, scope="history"):
+                self.assertEqual(result.returncode, 1)
+                self.assertTrue(any(item["rule"] == "svg-external-image" and item["path"] == name
+                                    and item.get("commit") for item in findings), name)
+
+    def test_svg_local_and_example_import_resources_pass(self):
+        text = ('<?xml-stylesheet href="local.css"?><svg><style>'
+                '@import "local.css"; /* @import "https://example.invalid/a"; */ '
+                'rect { --label: "@import https://example.invalid/a"; }'
+                '</style><foreignObject><img src="local.png" srcset="a.png 1x, b.png 2x"/>'
+                '</foreignObject></svg>')
+        (self.root / "local.svg").write_text(text)
+        self.assertEqual(self.scan()[0].returncode, 0)
+
+    def test_svg_stylesheet_whitespace_and_renamed_blob_fail(self):
+        url = "https" + "://" + "example.invalid" + "/style.css"
+        text = '<?xml-stylesheet\thref="' + url + '"?><svg/>'
+        (self.root / "stylesheet.svg").write_text(text)
+        with self.subTest(scope="current"):
+            result, findings = self.scan()
+            self.assertEqual(result.returncode, 1)
+            self.assertTrue(any(item["rule"] == "svg-external-image" for item in findings))
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic stylesheet")
+        git(self.root, "mv", "stylesheet.svg", "stylesheet.dat")
+        git(self.root, "commit", "-qm", "rename stylesheet")
+        (self.root / "stylesheet.dat").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove stylesheet")
+        with self.subTest(scope="history"):
+            result, findings = self.scan(history=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertTrue(any(item["rule"] == "svg-external-image" and item["path"] == "stylesheet.dat"
+                                and item.get("commit") for item in findings))
+
     def test_secret_introduced_in_merge_commit_fails_history(self):
         (self.root / "base.md").write_text("Synthetic base\n")
         git(self.root, "add", ".")

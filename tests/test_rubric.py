@@ -48,6 +48,13 @@ class RubricTests(unittest.TestCase):
     def test_expected_document_passes_bootstrap(self):
         self.assertTrue(self.score("bootstrap-agent-product", EXPECTED)["passed"])
 
+    def test_fictional_sample_does_not_claim_runtime_verification(self):
+        text = EXPECTED.read_text()
+        row = next(line for line in text.splitlines() if line.startswith("| Recorded submit"))
+        self.assertIn("runtime evidence: absent", row)
+        self.assertIn("fictional sample only", row)
+        self.assertNotIn("runtime verified", row)
+
     def test_broken_local_source_fails(self):
         text = EXPECTED.read_text().replace("../acorn-tasks/docs/product.md", "./missing-source.md")
         self.assertIn("local-links", self.failed_names(self.score_text("bootstrap-agent-product", text)))

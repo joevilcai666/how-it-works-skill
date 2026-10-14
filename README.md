@@ -48,8 +48,9 @@ Mark missing evidence. Use synthetic examples and omit private records.
 ```
 
 The first run adds project-local maintenance rules to `AGENTS.md`.
-It preserves unrelated instructions and adds an `@AGENTS.md` import to a project's `CLAUDE.md` when needed.
-It does not create `CLAUDE.md` or change global instructions.
+It preserves unrelated instructions and adds a root `AGENTS.md` import to existing Claude project instructions when needed.
+Root `CLAUDE.md` uses `@AGENTS.md`. `.claude/CLAUDE.md` uses `@../AGENTS.md`.
+If both files exist, setup checks and updates both. It does not create either file or change global instructions.
 The agent then creates or refreshes one `HOW_IT_WORKS.md` in your language.
 Large repositories can take more than five minutes to inspect.
 

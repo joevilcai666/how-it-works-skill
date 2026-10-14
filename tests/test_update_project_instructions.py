@@ -98,6 +98,96 @@ class ProjectSetupTests(unittest.TestCase):
                 self.assertTrue(updated.startswith(original))
                 self.assertIn((IMPORT_START + "\n@AGENTS.md\n" + IMPORT_END).encode(), updated)
 
+    def test_marker_examples_refuse_before_any_write(self):
+        for filename in ("AGENTS.md", "CLAUDE.md"):
+            for start, end in ((START, END), (IMPORT_START, IMPORT_END)):
+                for wrapper in ("```md\n{}\n```\n", "~~~md\n{}\n~~~\n",
+                                "<!--\n{}\n-->\n", "    {}\n", "> {}\n"):
+                    with self.subTest(filename=filename, wrapper=wrapper, marker=start):
+                        self.agents.unlink(missing_ok=True)
+                        self.claude.write_text("# Preserve rules\n")
+                        example = start + "\n@AGENTS.md\n" + end
+                        if wrapper.startswith(("    ", "> ")):
+                            prefix = wrapper.split("{}")[0]
+                            content = "\n".join(prefix + line for line in example.splitlines()) + "\n"
+                        else:
+                            content = wrapper.format(example)
+                        (self.root / filename).write_text(content)
+                        self.assert_refused_without_changes()
+
+    def test_inline_import_tokens_are_active_and_not_duplicated(self):
+        for original in ("Use @AGENTS.md for project rules.\n", "- @./AGENTS.md\n",
+                         "See (@./AGENTS.md).\n", "@./AGENTS.md\n"):
+            with self.subTest(original=original):
+                self.claude.write_text(original)
+                self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+                self.assertEqual(self.claude.read_text(), original)
+
+    def test_inline_code_and_indented_code_imports_are_inactive(self):
+        for original in ("Use `@AGENTS.md` as an example.\n", "``@./AGENTS.md``\n",
+                         "    @AGENTS.md\n", "prefix<!-- @AGENTS.md -->suffix\n",
+                         "An example `starts here\n@AGENTS.md\nends here`.\n"):
+            with self.subTest(original=original):
+                self.claude.write_text(original)
+                self.assertEqual(self.report(run_setup(self.root))["claude"], "updated")
+                self.assertTrue(self.claude.read_text().startswith(original))
+
+    def test_multiline_inline_code_and_list_marker_examples_refuse(self):
+        for original in ("Example `\n" + START + "\nold rules\n" + END + "\n`.\n",
+                         "- Example\n  " + START + "\n  old rules\n  " + END + "\n"):
+            with self.subTest(original=original):
+                self.agents.write_text(original)
+                self.claude.write_text("# Preserve rules\n")
+                self.assert_refused_without_changes()
+
+    def test_nested_claude_import_preserves_content_and_is_idempotent(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        original = "# Nested rules\nKeep this.\n"
+        nested.write_text(original)
+        self.assertEqual(self.report(run_setup(self.root))["claude"], "updated")
+        before = nested.read_bytes()
+        self.assertTrue(before.startswith(original.encode()))
+        self.assertEqual(before.count(b"@../AGENTS.md"), 1)
+        self.assertFalse(self.claude.exists())
+        self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+        self.assertEqual(nested.read_bytes(), before)
+
+    def test_both_claude_files_get_correct_imports(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        nested.write_text("# Nested\n")
+        self.claude.write_text("# Root\n")
+        self.assertEqual(self.report(run_setup(self.root))["claude"], "updated")
+        self.assertIn("\n@AGENTS.md\n", self.claude.read_text())
+        self.assertIn("\n@../AGENTS.md\n", nested.read_text())
+        self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+
+    def test_nested_import_path_meaning_and_invalid_context(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        for text, status in (("See @../AGENTS.md.\n", "unchanged"),
+                             ("- @./../AGENTS.md\n", "unchanged"),
+                             ("@AGENTS.md\n", "updated")):
+            nested.write_text(text)
+            self.assertEqual(self.report(run_setup(self.root))["claude"], status)
+        self.agents.unlink()
+        self.claude.write_text("# Preserve root\n")
+        nested.write_text("```md\n" + IMPORT_START + "\n@../AGENTS.md\n" + IMPORT_END + "\n```\n")
+        before = nested.read_bytes()
+        self.assert_refused_without_changes()
+        self.assertEqual(nested.read_bytes(), before)
+        self.assertFalse(self.agents.exists())
+
+    def test_nested_claude_symlinks_refuse_before_writes(self):
+        outside = Path(self.temp.name) / "outside"
+        outside.mkdir()
+        (outside / "CLAUDE.md").write_text("# Preserve outside\n")
+        (self.root / ".claude").symlink_to(outside, target_is_directory=True)
+        self.assertEqual(run_setup(self.root).returncode, 2)
+        self.assertFalse(self.agents.exists())
+        self.assertEqual((outside / "CLAUDE.md").read_text(), "# Preserve outside\n")
+
     def test_closed_fence_with_html_example_on_opener_keeps_active_import_idempotent(self):
         for token in ("```", "~~~"):
             with self.subTest(fence=token):

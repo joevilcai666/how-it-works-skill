@@ -1,7 +1,7 @@
 interface:
   display_name: "How It Works"
   short_description: "Explain code and product flows with clear diagrams."
-  icon_small: "../../assets/icon.svg"
-  icon_large: "../../assets/logo.svg"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/logo.svg"
   brand_color: "#2563EB"
   default_prompt: "Use $how-it-works to create or refresh this project's HOW_IT_WORKS.md from local code and evidence."

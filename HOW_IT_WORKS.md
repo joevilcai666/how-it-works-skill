@@ -10,9 +10,9 @@ Public distribution remains `planned`. No official directory acceptance or publi
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), candidate revision `25143ea` | The package defines the workflow and implements local instruction setup | Instructions do not guarantee an agent follows every rule |
-| test verified | 108 root tests and 9 synthetic demo tests passed locally on candidate `25143ea`, 2026-10-14, Python 3.9.6, macOS arm64. See [local verification](docs/verification/v0.1.0.md) | Local cases check state, refusal behavior, package structure, public assets, and isolated instruction setup | These results cover local scenarios. Public installation remains unverified |
-| runtime verified | [Local client record](docs/verification/v0.1.0.md) and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `53b21d6` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 123 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, historical filenames, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
+| runtime verified | [Local client record](docs/verification/v0.1.0.md) on older candidate `25143ea` and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run. These trials do not verify this candidate's new behavior |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
 Code is a recipe. A local test checks a prepared example.
@@ -41,6 +41,7 @@ The portable manifest, Codex overlay, and Claude marketplace describe the same p
 They do not hold separate copies of the investigation workflow.
 The setup adapter only installs maintenance rules and hands document requests to the main skill.
 Python 3.9 or later is required for the updater. No hosted analysis service exists.
+The main skill includes its own icons. A standalone skill copy does not need the repository's root assets.
 
 ## What happens on the first request
 
@@ -57,14 +58,15 @@ sequenceDiagram
   participant Project as Project files
   Owner->>Agent: Explain this project
   Agent->>Setup: Project root and setup language
-  Setup->>Project: Validate root, files, and markers
-  alt Unsafe root, symlink, or malformed markers
+  Setup->>Project: Validate root and all existing instruction files
+  alt Unsafe root, symlink, or ambiguous Markdown context
     Setup-->>Agent: Refuse setup with an error
     Agent-->>Owner: Report the blocked setup
   else Valid instruction files
+    Setup->>Project: Stage all changes before replacements
     Setup->>Project: Update managed AGENTS.md block
-    opt Existing CLAUDE.md lacks an active import
-      Setup->>Project: Add managed AGENTS.md import
+    opt Any existing Claude instruction file lacks the root import
+      Setup->>Project: Add import with the correct relative path
     end
     Setup-->>Agent: Created, updated, unchanged, or absent
     Agent->>Project: Read sources, code, tests, available runs
@@ -74,9 +76,17 @@ sequenceDiagram
 ```
 
 Repeated setup does not duplicate the managed block.
-The updater does not create `CLAUDE.md` or edit user-global instructions.
-It checks both instruction targets before writes and refuses ambiguous marker ownership.
-File replacements use temporary files. This is not a transaction across both files if the operating system fails between replacements.
+The updater checks root `CLAUDE.md` and `.claude/CLAUDE.md` when they exist.
+Root instructions use `@AGENTS.md`. Nested instructions use `@../AGENTS.md`.
+If both files exist, setup checks and updates both. It reports `absent` only when neither exists.
+It preserves unrelated text and recognizes equivalent imports in prose and lists, outside code and comments.
+
+Managed markers must occupy separate lines at column one, outside code, comments, and list or quote examples.
+Setup refuses inactive, incomplete, duplicated, or overlapping markers before any write.
+It also refuses unclosed fences or comments, symlink targets, and a symlink `.claude` directory.
+The updater does not create either Claude instruction file or edit user-global instructions.
+It validates every target and stages all changes before the first replacement.
+File replacements use temporary files. An operating-system failure between replacements can still leave a partial result.
 
 ## Investigation and later updates
 
@@ -147,10 +157,19 @@ python3 -m unittest discover -s demo/acorn-tasks/tests -v
 python3 scripts/check_repo.py
 ```
 
-The repository checker passed locally on candidate `25143ea`, 2026-10-14. Both Agent Skills validators and Claude strict validation also passed.
+The repository checker, both Agent Skills validators, and Claude strict validation passed locally on this candidate, 2026-10-14.
 It runs the root tests, manifest consistency checks, local Markdown links, Mermaid counts, fences, privacy scans, and Git whitespace checks.
 It also runs `skills-ref` and Claude strict validation when installed.
 It prints a skip when a validator is absent. A skip is not a validation pass.
+
+The privacy scanner checks current filenames and file contents, including tracked files that ignore rules otherwise exclude.
+The history check inspects every reachable commit tree. It checks deleted and renamed filenames, including multiple names for one blob.
+Git separates these names with NUL bytes, so spaces, tabs, and line breaks cannot divide a filename.
+Each finding reports a redacted path, rule, line, and a commit that contains the entry.
+
+SVG checks cover resource references, inherited XML bases, CSS URL functions, CSS string imports, and XML stylesheet instructions.
+They also check resource attributes inside `foreignObject`, including namespaced attributes and resource lists.
+The scanner resolves references without network or file access. It also checks SVG metadata, embedded images, and PNG metadata.
 
 Its Mermaid check covers source presence, block counts, and fences. It does not render or parse every diagram.
 The agent must render diagrams when a renderer is available and report which check occurred.
@@ -190,6 +209,7 @@ Directory submission is not runtime-verified. No file or local test proves publi
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed package candidate revision: `25143ea`. This local record does not identify a published release.
+Analyzed package candidate: local safety fixes based on `53b21d6`. This record does not identify a published release.
+The client trial record retains its older candidate revision `25143ea`.
 
 Last reviewed: 2026-10-14
