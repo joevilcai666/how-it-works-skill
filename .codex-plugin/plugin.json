@@ -1,0 +1,27 @@
+{
+  "name": "how-it-works",
+  "version": "0.1.0",
+  "description": "Create and maintain a visual HOW_IT_WORKS.md for non-technical product owners from local code and evidence.",
+  "author": {
+    "name": "How It Works Contributors"
+  },
+  "repository": "https://github.com/joevilcai666/how-it-works-skill",
+  "license": "MIT",
+  "skills": "./skills/",
+  "onboardingSkill": "./skills/how-it-works-setup/SKILL.md",
+  "interface": {
+    "displayName": "How It Works",
+    "shortDescription": "Turn a codebase into a clear, visual product explanation.",
+    "longDescription": "Create or refresh HOW_IT_WORKS.md from local repository evidence. Explain product flows and module responsibilities with useful diagrams. Separate code, test, runtime, and user acceptance evidence.",
+    "developerName": "How It Works Contributors",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": [
+      "Explain how this project works and create a visual HOW_IT_WORKS.md for a non-technical product owner.",
+      "Refresh HOW_IT_WORKS.md to match the current code and evidence. Mark missing runtime or user acceptance evidence."
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg"
+  }
+}

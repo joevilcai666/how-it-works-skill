@@ -1,1 +1,8 @@
 .worktrees/
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+._*
+evals/runs/*
+!evals/runs/0.1.0/

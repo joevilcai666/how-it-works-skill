@@ -1,0 +1,13 @@
+{
+  "name": "how-it-works-skill",
+  "owner": {
+    "name": "How It Works Contributors"
+  },
+  "plugins": [
+    {
+      "name": "how-it-works",
+      "version": "0.1.0",
+      "source": "./"
+    }
+  ]
+}
