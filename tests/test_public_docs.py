@@ -80,23 +80,67 @@ class PublicDocsTests(unittest.TestCase):
 
     def test_distribution_records_release_and_all_channel_states(self):
         text = self.read("docs/distribution.md")
+        self.assert_distribution_table(text)
+
+    def assert_distribution_table(self, text):
         header = next(line for line in text.splitlines() if line.startswith("| Channel |"))
         for value in ("Status", "Source URL", "Permissions", "Release/tag", "SHA-256", "Update", "Removal", "Last policy review"):
             self.assertIn(value, header)
-        channels = ("OpenAI public plugin directory", "Anthropic official Claude plugin directory",
+        channels = ("GitHub repository and release", "OpenAI public plugin directory", "Anthropic official Claude plugin directory",
                     "skills.sh", "AgentSkill.sh", "SkillsMP")
-        rows = [line for line in text.splitlines() if line.startswith("| ")
-                and not line.startswith("| Channel |") and not line.startswith("| ---")]
-        states = ("planned", "submitted", "published", "rejected", "removed")
+        lines = text.splitlines()
+        table_start = lines.index(header)
+        rows = []
+        for line in lines[table_start + 2:]:
+            if not line.startswith("| "):
+                break
+            rows.append(line)
+        states = ("planned", "submitted", "published", "listed", "rejected", "removed")
+        self.assertEqual(len(rows), len(channels))
+        names = []
+        for row in rows:
+            cells = [cell.strip() for cell in row.split("|")[1:-1]]
+            self.assertEqual(len(row.split("|")), len(header.split("|")))
+            self.assertTrue(all(cells))
+            self.assertIn(cells[1], states)
+            self.assertIn("v0.1.0", cells[4])
+            names.append(cells[0])
+        self.assertEqual(len(names), len(set(names)))
         for channel in channels:
             matching_rows = [line for line in rows if channel in line]
             self.assertEqual(len(matching_rows), 1)
-            row = matching_rows[0]
-            cells = [cell.strip() for cell in row.split("|")[1:-1]]
-            self.assertTrue(any(cells[1].startswith(state) for state in states))
-            self.assertIn("v0.1.0", row)
-            self.assertEqual(len(row.split("|")), len(header.split("|")))
-            self.assertTrue(all(cells))
+
+    def test_distribution_rejects_arbitrary_status_suffix(self):
+        text = self.read("docs/distribution.md").replace(
+            "| OpenAI public plugin directory | planned |",
+            "| OpenAI public plugin directory | plannedgarbage |",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_distribution_table(text)
+
+    def test_distribution_rejects_contradictory_statuses(self):
+        text = self.read("docs/distribution.md").replace(
+            "| OpenAI public plugin directory | planned |",
+            "| OpenAI public plugin directory | published and also rejected |",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_distribution_table(text)
+
+    def test_distribution_rejects_removed_status_suffix(self):
+        text = self.read("docs/distribution.md").replace(
+            "| OpenAI public plugin directory | planned |",
+            "| OpenAI public plugin directory | removedforbidden |",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_distribution_table(text)
+
+    def test_distribution_validates_github_status(self):
+        text = self.read("docs/distribution.md").replace(
+            "| GitHub repository and release | published |",
+            "| GitHub repository and release | published and also rejected |",
+        )
+        with self.assertRaises(AssertionError):
+            self.assert_distribution_table(text)
 
     def test_community_and_release_files_exist_without_publication_claims(self):
         security = self.read("SECURITY.md")

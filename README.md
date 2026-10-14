@@ -61,6 +61,8 @@ All demo data is fictional. The example does not prove production operation.
 Release status: [v0.1.0](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.0) is public.
 Isolated public installs passed for Codex, Claude Code, and `npx skills`.
 Official directories have no submission or acceptance yet. See the [distribution register](docs/distribution.md).
+The [skills.sh page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works) is discoverable as of 2026-10-14.
+Page visibility does not prove indexed release/checksum identity, completed audits, install counts, or ranking.
 
 ## Install options
 

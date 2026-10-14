@@ -61,6 +61,8 @@ $how-it-works
 发布状态：[v0.1.0](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.0) 已公开发布。
 Codex、Claude Code 和 `npx skills` 的公开安装均通过隔离验证。
 官方目录尚未提交或收录。详见[分发登记表](docs/distribution.md)。
+[skills.sh 页面](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works)于 2026-10-14 确认可发现。
+页面可见不能证明索引版本与校验和一致、审查完成、安装量或排名。
 
 ## 安装方式
 

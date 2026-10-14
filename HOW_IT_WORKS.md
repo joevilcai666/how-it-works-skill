@@ -235,7 +235,8 @@ See the [commands, results, and evidence limits](docs/verification/v0.1.0.md).
 The public GitHub release and three public install routes have verification records.
 The annotated `v0.1.0` tag identifies `071d6ca`. The deterministic archive hash appears in the [distribution register](docs/distribution.md).
 Official directory submissions remain pending because authenticated portal access did not complete.
-The skills.sh install succeeded, but its candidate page returned 404. No indexed entry is verified.
+The skills.sh [skill page](https://skills.sh/joevilcai666/how-it-works-skill/how-it-works) and repository page are discoverable as of 2026-10-14.
+The public install succeeded. Page visibility does not prove indexed release/checksum identity, completed audits, install count, ranking, or document acceptance.
 AgentSkill.sh import remains pending account and terms review. No optional webhook exists.
 SkillsMP lacks verified release identity and an explicit listing-removal process, so proactive submission is rejected.
 The social preview image is public as a file. Its upload to the GitHub setting remains unverified.
@@ -245,7 +246,7 @@ Directory submission, directory acceptance, and product-owner acceptance remain 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
 Product-owner summary: The package now has a public GitHub release and three verified public install routes.
-Directory entries and the social preview setting remain unverified.
+skills.sh provides public discovery. Official directory entries and the social preview setting remain unverified.
 Claude document execution and product-owner acceptance still require separate evidence.
 
 Analyzed package release: `071d6ca2bf04f3af694de6343016e1e335c2bd76`, tag `v0.1.0`.
