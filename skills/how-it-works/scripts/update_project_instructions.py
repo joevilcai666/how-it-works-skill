@@ -54,7 +54,7 @@ def _marker_span(text: str, start: str, end: str) -> Optional[tuple[int, int]]:
     if first >= last:
         raise UnsafeProjectError("Managed markers are in the wrong order.")
     for marker in (start, end):
-        if not re.search(r"(?m)^[ \t]*" + re.escape(marker) + r"[ \t]*\r?$", text):
+        if not any(line.strip(" \t") == marker for line in text.splitlines()):
             raise UnsafeProjectError("Managed markers must occupy separate lines.")
     return first, last + len(end)
 
@@ -100,20 +100,58 @@ def update_managed_block(text: str, block: str) -> tuple[str, bool]:
 
 def _has_active_import(text: str) -> bool:
     # Claude imports in comments or Markdown code fences are examples, not rules.
-    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
     fence = None
+    comment = False
+    found = False
     for line in text.splitlines():
+        if fence is not None:
+            closing = re.match(r"^ {0,3}(`{3,}|~{3,})[ \t]*$", line)
+            if closing:
+                token = closing.group(1)
+                if token[0] == fence[0] and len(token) >= len(fence):
+                    fence = None
+            continue
+        visible = []
+        cursor = 0
+        while cursor < len(line):
+            if comment:
+                end = line.find("-->", cursor)
+                if end < 0:
+                    break
+                cursor = end + 3
+                comment = False
+            else:
+                start = line.find("<!--", cursor)
+                if start < 0:
+                    visible.append(line[cursor:])
+                    break
+                visible.append(line[cursor:start])
+                cursor = start + 4
+                comment = True
+        line = "".join(visible)
         marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
         if marker:
-            token, tail = marker.groups()
-            if fence is None:
-                fence = token
-            elif token[0] == fence[0] and len(token) >= len(fence) and not tail.strip():
-                fence = None
+            fence = marker.group(1)
             continue
-        if fence is None and line.strip() == "@AGENTS.md":
-            return True
-    return False
+        if line.strip() == "@AGENTS.md":
+            found = True
+    if fence is not None or comment:
+        raise UnsafeProjectError("CLAUDE.md has an unclosed Markdown fence or HTML comment.")
+    return found
+
+
+def _refuse_global_root(project_root: Path) -> None:
+    home = Path.home().resolve()
+    roots = {home, home / ".codex", home / ".claude", home / ".agents"}
+    config = Path(os.getenv("XDG_CONFIG_HOME") or home / ".config").expanduser().resolve()
+    roots.update((home / ".config", home / ".config" / "codex", home / ".config" / "claude",
+                  config, config / "codex", config / "claude"))
+    for name in ("CODEX_HOME", "CLAUDE_CONFIG_DIR"):
+        value = os.getenv(name)
+        if value:
+            roots.add(Path(value).expanduser().resolve())
+    if project_root in {root.resolve() for root in roots}:
+        raise UnsafeProjectError("Refuse user-global instruction or configuration root.")
 
 
 def _read_target(path: Path) -> Optional[bytes]:
@@ -162,6 +200,7 @@ def apply_setup(project_root: Path, language: str, dry_run: bool = False) -> Set
     if project_root.is_symlink():
         raise UnsafeProjectError("Refuse symlink project root.")
     project_root = project_root.resolve(strict=True)
+    _refuse_global_root(project_root)
     if not project_root.is_dir():
         raise UnsafeProjectError("Project root must be an existing directory.")
     agents_path = project_root / "AGENTS.md"

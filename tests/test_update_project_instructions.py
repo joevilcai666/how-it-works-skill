@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,14 @@ def run_setup(project_root, language="en", *, dry_run=False, cwd=None):
     if dry_run:
         args.append("--dry-run")
     return subprocess.run(args, cwd=cwd, text=True, capture_output=True)
+
+
+def load_updater():
+    spec = importlib.util.spec_from_file_location("project_setup", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 class ProjectSetupTests(unittest.TestCase):
@@ -98,6 +107,81 @@ class ProjectSetupTests(unittest.TestCase):
             data = path.read_bytes()
             self.assertTrue(data.startswith(prefix))
             self.assertNotIn(b"\n", data.replace(b"\r\n", b""))
+
+    def test_cr_only_newlines_remain_idempotent_in_both_files(self):
+        self.agents.write_bytes(b"# Existing\r\rKeep this.\r")
+        self.claude.write_bytes(b"# Claude\rKeep this too.\r")
+        self.report(run_setup(self.root, "zh-CN"))
+        before = {p.name: p.read_bytes() for p in (self.agents, self.claude)}
+        report = self.report(run_setup(self.root, "zh-CN"))
+        self.assertEqual((report["agents"], report["claude"]), ("unchanged", "unchanged"))
+        for path in (self.agents, self.claude):
+            self.assertEqual(path.read_bytes(), before[path.name])
+            self.assertNotIn(b"\n", path.read_bytes())
+
+    def test_unclosed_claude_context_refuses_without_changes(self):
+        for context in ("```md\nexample\n", "~~~md\n@AGENTS.md\n", "<!--\n@AGENTS.md\n",
+                        "@AGENTS.md\n```md\nexample\n", "````md\n```\n"):
+            with self.subTest(context=context):
+                self.agents.write_bytes(b"# Preserve existing rules\n")
+                self.claude.write_text(context, encoding="utf-8")
+                self.assert_refused_without_changes()
+
+    def test_unclosed_claude_context_does_not_create_agents(self):
+        self.claude.write_bytes(b"```md\nexample\n")
+        self.assert_refused_without_changes()
+        self.assertFalse(self.agents.exists())
+
+    def test_home_and_global_config_roots_are_refused_without_changes(self):
+        module = load_updater()
+        home = self.root / "home"
+        home.mkdir()
+        global_roots = (home, home / ".codex", home / ".claude", home / ".agents",
+                        home / ".config", home / ".config" / "codex", home / ".config" / "claude")
+        for root in global_roots:
+            root.mkdir(parents=True, exist_ok=True)
+            (root / "AGENTS.md").write_bytes(b"# Preserve global agent rules\n")
+            (root / "CLAUDE.md").write_bytes(b"# Preserve global Claude rules\n")
+        with patch.object(module.Path, "home", return_value=home):
+            for root in global_roots:
+                for dry_run in (False, True):
+                    with self.subTest(root=root, dry_run=dry_run):
+                        before = {p.name: p.read_bytes() for p in root.iterdir() if p.is_file()}
+                        with self.assertRaises(module.UnsafeProjectError):
+                            module.apply_setup(root, "en", dry_run=dry_run)
+                        self.assertEqual({p.name: p.read_bytes() for p in root.iterdir() if p.is_file()}, before)
+
+    def test_custom_global_config_roots_are_refused_without_changes(self):
+        module = load_updater()
+        configs = {"CODEX_HOME": self.root / "custom-codex", "CLAUDE_CONFIG_DIR": self.root / "custom-claude"}
+        for root in configs.values():
+            root.mkdir()
+            (root / "AGENTS.md").write_bytes(b"# Global rules\n")
+        # Isolate environment lookups. Do not change real client configuration.
+        with patch.object(module.os, "getenv", side_effect=lambda name: str(configs[name]) if name in configs else None):
+            for root in configs.values():
+                with self.subTest(root=root):
+                    with self.assertRaises(module.UnsafeProjectError):
+                        module.apply_setup(root, "en")
+                    self.assertEqual((root / "AGENTS.md").read_bytes(), b"# Global rules\n")
+                    self.assertFalse((root / "CLAUDE.md").exists())
+
+    def test_ordinary_project_under_home_is_allowed(self):
+        module = load_updater()
+        home = self.root / "home"
+        project = home / "projects" / "ordinary"
+        project.mkdir(parents=True)
+        with patch.object(module.Path, "home", return_value=home):
+            report = module.apply_setup(project, "en")
+        self.assertEqual(report.agents, "created")
+        self.assertTrue((project / "AGENTS.md").exists())
+        self.assertFalse((home / "AGENTS.md").exists())
+
+    def test_cli_refuses_actual_home_even_in_dry_run(self):
+        result = run_setup(Path.home(), dry_run=True)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("global", result.stderr.lower())
 
     def test_chinese_block_and_language_switch_preserve_unrelated_text(self):
         original = "# 项目规则\n\n保留这一句。\n".encode()
