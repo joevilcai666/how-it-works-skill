@@ -74,6 +74,24 @@ def scan_text(text, path, commit=None, start_line=1):
     return result
 
 
+def decode_css_escapes(value):
+    """Decode CSS hex/simple escapes and remove escaped newline continuations."""
+    def replace(match):
+        if match[1] is not None:
+            codepoint = int(match[1], 16)
+            if codepoint == 0 or codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF:
+                return "\ufffd"
+            return chr(codepoint)
+        if match[2] is not None:
+            return ""
+        return match[3]
+
+    # CSS consumes at most six hex digits and one optional whitespace character.
+    # A CRLF pair counts as one newline. Decode once, as CSS tokenization does.
+    return re.sub(r"\\(?:([0-9a-fA-F]{1,6})(?:\r\n|[ \t\r\n\f])?|(\r\n|[\r\n\f])|(.))",
+                  replace, value, flags=re.DOTALL)
+
+
 def scan_svg(text, path, commit=None):
     """Resolve resource references with inherited XML bases, without I/O."""
     try:
@@ -101,6 +119,7 @@ def scan_svg(text, path, commit=None):
         if tag == "style":
             css_values.append("".join(node.itertext()))
         for value in css_values:
+            value = decode_css_escapes(value)
             references.extend(match[1].strip().strip("\"'")
                               for match in re.finditer(r"url\s*\(([^)]+)\)", value, re.IGNORECASE))
         for reference in references:

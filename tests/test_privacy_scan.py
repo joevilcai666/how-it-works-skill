@@ -292,6 +292,55 @@ class PrivacyScanTests(unittest.TestCase):
         self.assertFalse(any(value in result.stdout + result.stderr for value in values),
                          "Redaction exposed a private fixture")
 
+    def test_svg_css_escapes_in_function_names_and_urls_fail(self):
+        slash = chr(92)
+        host = "example.invalid" + "/a.svg#p"
+        cases = [
+            "url(https" + slash + "3a //" + host + ")",
+            "u" + slash + "72l(https" + "://" + host + ")",
+            "u" + slash + "000072 l('https" + slash + "00003a//" + host + "')",
+            "url(https" + slash + ":" + slash + "/" + slash + "/" + host + ")",
+        ]
+        for index, value in enumerate(cases):
+            with self.subTest(case=index):
+                (self.root / "escaped.svg").write_text('<svg><rect style="fill:' + value + '"/></svg>')
+                result, findings = self.scan()
+                self.assertEqual(result.returncode, 1, "Escaped CSS URL passed privacy scan")
+                self.assertTrue(any(item["rule"] == "svg-external-image" for item in findings),
+                                "No finding for escaped CSS URL")
+
+    def test_svg_style_text_css_escapes_fail_history(self):
+        slash = chr(92)
+        base = "https" + "://" + "example.invalid" + "/assets/"
+        value = "u" + slash + "72l(relative.svg#p)"
+        (self.root / "escaped.svg").write_text('<svg xml:base="' + base + '"><style>rect {fill:' + value + ';}</style></svg>')
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic escaped CSS")
+        (self.root / "escaped.svg").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove escaped CSS")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1, "Escaped CSS URL passed history scan")
+        self.assertTrue(any(item["rule"] == "svg-external-image" and item.get("commit")
+                            for item in findings))
+
+    def test_svg_style_text_css_line_continuation_url_fails(self):
+        slash = chr(92)
+        value = "url('htt" + slash + "\r\nps" + "://" + "example.invalid" + "/a.svg#p')"
+        (self.root / "continued.svg").write_text('<svg><style>rect {fill:' + value + ';}</style></svg>')
+        result, findings = self.scan()
+        self.assertEqual(result.returncode, 1, "CSS line continuation URL passed scan")
+        self.assertTrue(any(item["rule"] == "svg-external-image" for item in findings))
+
+    def test_svg_css_escaped_local_fragment_and_relative_url_pass(self):
+        slash = chr(92)
+        value = "u" + slash + "72l(" + slash + "23 local)"
+        local = "url(local" + slash + "110000.svg#p)"
+        (self.root / "escaped-local.svg").write_text('<svg><rect fill="' + value + '"/><style>rect {mask:' + local + ';}</style></svg>')
+        result, findings = self.scan()
+        self.assertEqual(result.returncode, 0, "Local escaped CSS caused scan failure")
+        self.assertEqual(findings, [])
+
 
 if __name__ == "__main__":
     unittest.main()
