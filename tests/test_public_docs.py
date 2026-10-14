@@ -78,20 +78,25 @@ class PublicDocsTests(unittest.TestCase):
                       "AGENTS.md", "CLAUDE.md", "planned", "6 of 7", "Python 3.9"):
             self.assertIn(value, text)
 
-    def test_distribution_records_pending_release_and_all_channels(self):
+    def test_distribution_records_release_and_all_channel_states(self):
         text = self.read("docs/distribution.md")
         header = next(line for line in text.splitlines() if line.startswith("| Channel |"))
         for value in ("Status", "Source URL", "Permissions", "Release/tag", "SHA-256", "Update", "Removal", "Last policy review"):
             self.assertIn(value, header)
         channels = ("OpenAI public plugin directory", "Anthropic official Claude plugin directory",
                     "skills.sh", "AgentSkill.sh", "SkillsMP")
-        rows = [line for line in text.splitlines() if line.startswith("|") and "planned" in line]
-        self.assertEqual(len(rows), 5)
+        rows = [line for line in text.splitlines() if line.startswith("| ")
+                and not line.startswith("| Channel |") and not line.startswith("| ---")]
+        states = ("planned", "submitted", "published", "rejected", "removed")
         for channel in channels:
-            row = next(line for line in rows if channel in line)
+            matching_rows = [line for line in rows if channel in line]
+            self.assertEqual(len(matching_rows), 1)
+            row = matching_rows[0]
+            cells = [cell.strip() for cell in row.split("|")[1:-1]]
+            self.assertTrue(any(cells[1].startswith(state) for state in states))
             self.assertIn("v0.1.0", row)
-            self.assertIn("pending", row)
             self.assertEqual(len(row.split("|")), len(header.split("|")))
+            self.assertTrue(all(cells))
 
     def test_community_and_release_files_exist_without_publication_claims(self):
         security = self.read("SECURITY.md")

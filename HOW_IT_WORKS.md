@@ -6,13 +6,15 @@ It runs through an AI client that can read the project and execute authorized lo
 ## Current status and evidence
 
 The shared workflow, project instruction updater, synthetic demo, and package checks exist.
-Public distribution remains `planned`. No official directory acceptance or public install record exists in this release preparation.
+GitHub and release `v0.1.0` are public. Isolated public installs passed for Codex, Claude Code, and the generic installer.
+Official directories remain `planned`, with no submission or acceptance.
+The [distribution register](docs/distribution.md) records each channel and its remaining boundary.
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
 | code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), candidate `dd734d0` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 140 root tests and 9 synthetic demo tests passed locally on candidate `dd734d0`, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
-| runtime verified | [Local client record](docs/verification/v0.1.0.md) on candidate `dd734d0`, 2026-10-14. Earlier synthetic comparison remains in [evaluations](evals/README.md) | Codex CLI loaded both skills, updated all three project instruction files, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 blocked a document run and model use of the imports |
+| test verified | 140 root tests passed on release `071d6ca`. Nine synthetic demo tests passed on code candidate `dd734d0`, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios |
+| runtime verified | [Client record](docs/verification/v0.1.0.md), 2026-10-14. Local model trial: `dd734d0`. Public installs: release `071d6ca` | Codex saved a synthetic document. Public Codex and Claude installs enabled version 0.1.0. The generic installer copied matching main-skill files | Codex met 6 of 7 rubric checks. HTTP 401 blocked the Claude document run and model use of the imports. Public installs did not repeat model execution |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
 Code is a recipe. A local test checks a prepared example.
@@ -26,6 +28,9 @@ The main skill first runs project instruction setup, then directs repository inv
 
 ```mermaid
 flowchart LR
+  G[Public GitHub v0.1.0] --> A
+  G --> B
+  G --> C
   A[Codex plugin or skill] --> S[Shared main skill]
   B[Claude Code plugin] --> S
   C[Npx install or manual skills copy] --> S
@@ -178,7 +183,7 @@ python3 -m unittest discover -s demo/acorn-tasks/tests -v
 python3 scripts/check_repo.py
 ```
 
-The repository checker, both Agent Skills validators, and Claude strict validation passed locally on candidate `dd734d0`, 2026-10-14.
+The repository checker, both Agent Skills validators, and Claude strict validation passed locally on release `071d6ca`, 2026-10-14.
 It runs the root tests, manifest consistency checks, local Markdown links, Mermaid counts, fences, privacy scans, and Git whitespace checks.
 It also runs `skills-ref` and Claude strict validation when installed.
 It prints a skip when a validator is absent. A skip is not a validation pass.
@@ -227,12 +232,23 @@ The generic `skills` installer 1.7.2 copied the main skill into an isolated proj
 That installer has no model execution for this request. Its install result does not prove a separate generic client's document behavior.
 See the [commands, results, and evidence limits](docs/verification/v0.1.0.md).
 
-All five channels in the [distribution register](docs/distribution.md) remain `planned` until public verification.
-Release `v0.1.0`, archive checksum, directory entry URLs, and policy review evidence remain `pending`.
-Directory submission is not runtime-verified. No file or local test proves published-directory acceptance.
+The public GitHub release and three public install routes have verification records.
+The annotated `v0.1.0` tag identifies `071d6ca`. The deterministic archive hash appears in the [distribution register](docs/distribution.md).
+Official directory submissions remain pending because authenticated portal access did not complete.
+The skills.sh install succeeded, but its candidate page returned 404. No indexed entry is verified.
+AgentSkill.sh import remains pending account and terms review. No optional webhook exists.
+SkillsMP lacks verified release identity and an explicit listing-removal process, so proactive submission is rejected.
+The social preview image is public as a file. Its upload to the GitHub setting remains unverified.
+The computer UI reported a lock, and browser actions failed or timed out.
+Directory submission, directory acceptance, and product-owner acceptance remain separate evidence levels.
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed package candidate: `dd734d08e1a185a719a37a88038338609cd4140d`. This record does not identify a published release.
+Product-owner summary: The package now has a public GitHub release and three verified public install routes.
+Directory entries and the social preview setting remain unverified.
+Claude document execution and product-owner acceptance still require separate evidence.
+
+Analyzed package release: `071d6ca2bf04f3af694de6343016e1e335c2bd76`, tag `v0.1.0`.
+Local model trial code: `dd734d08e1a185a719a37a88038338609cd4140d`.
 
 Last reviewed: 2026-10-14

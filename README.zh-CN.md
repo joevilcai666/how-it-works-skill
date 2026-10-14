@@ -58,9 +58,9 @@ $how-it-works
 查看[合成 Acorn Tasks 项目](demo/acorn-tasks/README.md)和它的[产品说明示例](demo/expected/HOW_IT_WORKS.md)。
 所有示例数据都是虚构数据。示例不能证明生产系统已经运行成功。
 
-发布状态：`0.1.0` 是本地候选版本。
-公开安装和官方目录收录尚未验证。
-以下命令对应计划中的公开安装方式。详见[分发登记表](docs/distribution.md)。
+发布状态：[v0.1.0](https://github.com/joevilcai666/how-it-works-skill/releases/tag/v0.1.0) 已公开发布。
+Codex、Claude Code 和 `npx skills` 的公开安装均通过隔离验证。
+官方目录尚未提交或收录。详见[分发登记表](docs/distribution.md)。
 
 ## 安装方式
 
@@ -85,7 +85,8 @@ codex plugin add how-it-works@how-it-works-skill
 这个方式需要保留完整仓库。根目录的 `plugin.json` 描述可移植插件。
 Codex 兼容文件和仓库市场指向同一个 `skills/` 目录。
 插件还包含一个小型设置技能。
-本地 Codex CLI 帮助确认了这些命令格式。完整安装流程仍需发布验证。
+Codex CLI 0.162.1 已在隔离配置中安装这个公开插件。
+在添加市场的命令后加入 `--ref v0.1.0`，即可选择已验证的版本。
 
 ### Claude Code：仓库市场
 
@@ -98,7 +99,8 @@ Codex 兼容文件和仓库市场指向同一个 `skills/` 目录。
 
 通过客户端的技能菜单或支持的调用语法使用技能。
 仓库包含 Claude 插件文件和市场文件。
-本地严格格式验证不等于真实客户端使用成功。
+Claude Code 2.1.295 已通过公开仓库市场安装 0.1.0。
+文档生成仍需有效的模型认证。安装成功不能证明文档已通过验收。
 
 <a id="manual-install"></a>
 
@@ -120,9 +122,9 @@ cp -R how-it-works-skill/skills/how-it-works <client-skill-directory>/how-it-wor
 
 | 客户端或组件 | 仓库提供什么 | 已验证什么 | 尚未验证什么 |
 | --- | --- | --- | --- |
-| Codex | Agent Skills、可移植 `plugin.json`、兼容文件、设置技能 | 包检查和一次合成 Agent 执行 | 公开安装、插件加载、完整验收 |
-| Claude Code | 共享技能、插件文件、仓库市场 | 本地严格格式验证 | 安装和真实客户端文档生成 |
-| 通用 Agent Skills 客户端 | 完整 `skills/how-it-works/` 目录 | 本地 Agent Skills 验证器 | 各客户端的技能发现和执行 |
+| Codex | Agent Skills、可移植 `plugin.json`、兼容文件、设置技能 | 公开插件安装、两个技能目录、一次本地合成文档生成 | 通过公开插件执行模型，以及完整验收 |
+| Claude Code | 共享技能、插件文件、仓库市场 | 公开安装、插件启用、严格验证、本地技能发现 | 文档生成和模型使用项目引用。服务返回 HTTP 401 |
+| 通用 Agent Skills 客户端 | 完整 `skills/how-it-works/` 目录 | 公开 npx 安装，以及复制文件一致 | 各独立客户端的文档生成 |
 | 指令更新程序 | Python 3.9+、中英文维护规则 | 重复执行、原文保留、拒绝条件、本地单元测试 | 所有文件系统和指令配置 |
 
 [合成 Agent 执行记录](evals/README.md)通过了 7 项评分中的 6 项。
@@ -157,4 +159,6 @@ Agent 阅读项目指令、产品资料、代码、测试和可用运行证据�
 欢迎提供合成错误示例、客户端兼容性报告，或具体改进建议。
 [贡献说明](CONTRIBUTING.md)列出本地检查和证据要求。
 项目使用 [MIT 许可证](LICENSE)。
-另见 [0.1.0 发布草稿](docs/releases/v0.1.0.md)和[版本说明](CHANGELOG.md)。
+另见 [0.1.0 发布说明](docs/releases/v0.1.0.md)、[验证记录](docs/verification/v0.1.0.md)和[版本说明](CHANGELOG.md)。
+
+最后检查：2026-10-14。
