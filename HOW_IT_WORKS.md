@@ -10,9 +10,9 @@ Public distribution remains `planned`. No official directory acceptance or publi
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), core revision `a56c61f` | The package defines the workflow and implements local instruction setup | Instructions do not guarantee an agent follows every rule |
-| test verified | 108 root tests and 9 synthetic demo tests passed locally on 2026-10-14, Python 3.9.6, macOS arm64. See [updater tests](tests/test_update_project_instructions.py), [package tests](tests/test_check_repo.py), and [public-document tests](tests/test_public_docs.py) | Local cases check state, refusal behavior, package structure, and public assets | These results cover local scenarios. Final release checks must use the exact release commit |
-| runtime verified | [Synthetic agent comparison](evals/README.md), one Codex collaboration client on 2026-10-14 | The enabled agent created a saved document and met 6 of 7 rubric checks | Two diagrams failed the case's three-diagram threshold. Public client installation remains unverified |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), candidate revision `25143ea` | The package defines the workflow and implements local instruction setup | Instructions do not guarantee an agent follows every rule |
+| test verified | 108 root tests and 9 synthetic demo tests passed locally on candidate `25143ea`, 2026-10-14, Python 3.9.6, macOS arm64. See [local verification](docs/verification/v0.1.0.md) | Local cases check state, refusal behavior, package structure, public assets, and isolated instruction setup | These results cover local scenarios. Public installation remains unverified |
+| runtime verified | [Local client record](docs/verification/v0.1.0.md) and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
 Code is a recipe. A local test checks a prepared example.
@@ -28,7 +28,7 @@ The main skill first runs project instruction setup, then directs repository inv
 flowchart LR
   A[Codex plugin or skill] --> S[Shared main skill]
   B[Claude Code plugin] --> S
-  C[Manual Agent Skills copy] --> S
+  C[Npx install or manual skills copy] --> S
   S --> U[Project maintenance rules]
   S --> R[Read sources and trace a request]
   R --> E[Classify evidence and limits]
@@ -147,7 +147,7 @@ python3 -m unittest discover -s demo/acorn-tasks/tests -v
 python3 scripts/check_repo.py
 ```
 
-The repository checker passed locally on 2026-10-14. Both Agent Skills validators and Claude strict validation also passed.
+The repository checker passed locally on candidate `25143ea`, 2026-10-14. Both Agent Skills validators and Claude strict validation also passed.
 It runs the root tests, manifest consistency checks, local Markdown links, Mermaid counts, fences, privacy scans, and Git whitespace checks.
 It also runs `skills-ref` and Claude strict validation when installed.
 It prints a skip when a validator is absent. A skip is not a validation pass.
@@ -171,9 +171,18 @@ The package supplies agent instructions and a local updater. The client supplies
 The skill adds no telemetry or upload service. The client and third-party installers retain their own data policies.
 Privacy checks detect known patterns and image metadata. They cannot guarantee the absence of every sensitive fact.
 
-No cross-client runtime acceptance exists yet.
-The recorded synthetic enabled-agent result falls short of one evaluation case, as described above.
-Generic client support follows the package specification, but each client still needs an actual install and document run.
+No cross-client document acceptance exists yet.
+Codex CLI 0.162.1 loaded both local skills and completed one synthetic document run in an isolated project.
+It passed six rubric checks. Its two diagrams failed the original case's three-diagram threshold.
+The request did not specify three diagrams, and the skill permits two to four.
+The document links resolved, but no Mermaid renderer was available.
+
+Claude Code 2.1.295 discovered both skills through the local plugin path.
+Its configured provider returned HTTP 401, so document execution and use of imported project instructions remain unverified.
+Separate updater checks preserved an existing `CLAUDE.md`, added one `@AGENTS.md` import, and kept repeated setup unchanged.
+The generic `skills` installer 1.7.2 copied the main skill into an isolated project, with file equality and repeat-run setup checks.
+That installer has no model execution for this request. Its install result does not prove a separate generic client's document behavior.
+See the [commands, results, and evidence limits](docs/verification/v0.1.0.md).
 
 All five channels in the [distribution register](docs/distribution.md) remain `planned` until public verification.
 Release `v0.1.0`, archive checksum, directory entry URLs, and policy review evidence remain `pending`.
@@ -181,6 +190,6 @@ Directory submission is not runtime-verified. No file or local test proves publi
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed core revision: `a56c61f`. Public documentation and assets belong to the current release preparation.
+Analyzed package candidate revision: `25143ea`. This local record does not identify a published release.
 
 Last reviewed: 2026-10-14
