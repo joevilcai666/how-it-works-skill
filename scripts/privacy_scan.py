@@ -74,22 +74,113 @@ def scan_text(text, path, commit=None, start_line=1):
     return result
 
 
-def decode_css_escapes(value):
-    """Decode CSS hex/simple escapes and remove escaped newline continuations."""
-    def replace(match):
-        if match[1] is not None:
-            codepoint = int(match[1], 16)
-            if codepoint == 0 or codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF:
-                return "\ufffd"
-            return chr(codepoint)
-        if match[2] is not None:
-            return ""
-        return match[3]
+def css_escape(value, position):
+    """Consume one CSS escape without turning its value into token syntax."""
+    match = re.match(r"\\(?:([0-9a-fA-F]{1,6})(?:\r\n|[ \t\r\n\f])?|(\r\n|[\r\n\f])|(.))",
+                     value[position:], flags=re.DOTALL)
+    if not match:
+        return "\\", position + 1
+    if match[1] is not None:
+        codepoint = int(match[1], 16)
+        decoded = "\ufffd" if codepoint == 0 or codepoint > 0x10FFFF or 0xD800 <= codepoint <= 0xDFFF else chr(codepoint)
+    else:
+        decoded = "" if match[2] is not None else match[3]
+    return decoded, position + match.end()
 
-    # CSS consumes at most six hex digits and one optional whitespace character.
-    # A CRLF pair counts as one newline. Decode once, as CSS tokenization does.
-    return re.sub(r"\\(?:([0-9a-fA-F]{1,6})(?:\r\n|[ \t\r\n\f])?|(\r\n|[\r\n\f])|(.))",
-                  replace, value, flags=re.DOTALL)
+
+def css_urls(value):
+    """Find URL tokens/functions while retaining the original token boundaries."""
+    whitespace = " \t\r\n\f"
+    references = []
+
+    def name_character(character):
+        return character.isalnum() or character in "_-" or ord(character) >= 128
+
+    def name(position):
+        decoded = []
+        while position < len(value):
+            character = value[position]
+            if name_character(character):
+                decoded.append(character)
+                position += 1
+            elif character == "\\" and position + 1 < len(value) and value[position + 1] not in "\r\n\f":
+                part, position = css_escape(value, position)
+                decoded.append(part)
+            else:
+                break
+        return "".join(decoded), position
+
+    def string(position):
+        quote = value[position]
+        decoded = []
+        position += 1
+        while position < len(value):
+            character = value[position]
+            if character == quote:
+                return "".join(decoded), position + 1
+            if character in "\r\n\f":
+                return None, position + 1
+            if character == "\\":
+                part, position = css_escape(value, position)
+                decoded.append(part)
+            else:
+                decoded.append(character)
+                position += 1
+        return None, position
+
+    def url(position):
+        while position < len(value) and value[position] in whitespace:
+            position += 1
+        if position < len(value) and value[position] in "\"'":
+            reference, position = string(position)
+            while position < len(value) and value[position] in whitespace:
+                position += 1
+            if reference is not None and position < len(value) and value[position] == ")":
+                return reference, position + 1
+            return None, position
+        decoded = []
+        while position < len(value):
+            character = value[position]
+            if character == ")":
+                return "".join(decoded), position + 1
+            if character in whitespace:
+                while position < len(value) and value[position] in whitespace:
+                    position += 1
+                if position < len(value) and value[position] == ")":
+                    return "".join(decoded), position + 1
+                return None, position
+            if character in "\"'(" or ord(character) < 32 or ord(character) == 127:
+                return None, position + 1
+            if character == "\\":
+                if position + 1 >= len(value) or value[position + 1] in "\r\n\f":
+                    return None, position + 1
+                part, position = css_escape(value, position)
+                decoded.append(part)
+            else:
+                decoded.append(character)
+                position += 1
+        return None, position
+
+    position = 0
+    while position < len(value):
+        character = value[position]
+        if value.startswith("/*", position):
+            end = value.find("*/", position + 2)
+            position = len(value) if end < 0 else end + 2
+        elif character in "\"'":
+            _, position = string(position)
+        elif character in "#@" and position + 1 < len(value):
+            # Hash and at-keyword tokens do not become URL functions.
+            _, position = name(position + 1)
+        elif name_character(character) or (character == "\\" and position + 1 < len(value) and value[position + 1] not in "\r\n\f"):
+            token, position = name(position)
+            if token.lower() == "url" and position < len(value) and value[position] == "(":
+                reference, position = url(position + 1)
+                if reference is not None:
+                    references.append(reference)
+        else:
+            position += 1
+    return references
 
 
 def scan_svg(text, path, commit=None):
@@ -119,9 +210,7 @@ def scan_svg(text, path, commit=None):
         if tag == "style":
             css_values.append("".join(node.itertext()))
         for value in css_values:
-            value = decode_css_escapes(value)
-            references.extend(match[1].strip().strip("\"'")
-                              for match in re.finditer(r"url\s*\(([^)]+)\)", value, re.IGNORECASE))
+            references.extend(css_urls(value))
         for reference in references:
             if external(reference, base):
                 index = text.find(reference)

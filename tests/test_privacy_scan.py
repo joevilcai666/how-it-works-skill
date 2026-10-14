@@ -341,6 +341,23 @@ class PrivacyScanTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, "Local escaped CSS caused scan failure")
         self.assertEqual(findings, [])
 
+    def test_svg_css_escaped_parentheses_remain_identifier_and_pass(self):
+        slash = chr(92)
+        escaped = ("url" + slash + "(https" + slash + ":" + slash + "/" + slash + "/"
+                   + "example.invalid" + slash + "/a.svg" + slash + "#p" + slash + ")")
+        (self.root / "identifier.svg").write_text('<svg><style>rect { --label: ' + escaped + '; fill: blue; }</style></svg>')
+        result, findings = self.scan()
+        self.assertEqual(result.returncode, 0, "Escaped CSS identifier caused a false finding")
+        self.assertEqual(findings, [])
+
+    def test_svg_css_strings_comments_and_hash_tokens_do_not_create_url_functions(self):
+        url = "https" + "://" + "example.invalid" + "/a.svg#p"
+        css = 'rect { --label: "url(' + url + ')"; /* url(' + url + ') */ fill:blue; } #url(' + url + ') {}'
+        (self.root / "tokens.svg").write_text('<svg><style>' + css + '</style></svg>')
+        result, findings = self.scan()
+        self.assertEqual(result.returncode, 0, "Non-function CSS token caused a false finding")
+        self.assertEqual(findings, [])
+
 
 if __name__ == "__main__":
     unittest.main()
