@@ -19,6 +19,7 @@ END = "<!-- how-it-works:end -->"
 IMPORT_START = "<!-- how-it-works:claude-import:start -->"
 IMPORT_END = "<!-- how-it-works:claude-import:end -->"
 MARKERS = (START, END, IMPORT_START, IMPORT_END)
+IMPORT_TOKEN = re.compile(r"(?<![\w@./\\])@((?:\.\.?/)*AGENTS\.md)(?![\w/\\-]|\.[\w.])")
 ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
 
@@ -103,6 +104,25 @@ def _fence_content(line: str, context: FenceContext) -> Optional[str]:
     return content
 
 
+def _reference_classification(content: str) -> Optional[Classification]:
+    """Validate a complete supported definition, rather than its label prefix."""
+    reference = re.match(r"^ {0,3}\[[^\]\n]+\]:[ \t]*(.*)$", content)
+    if not reference:
+        return None
+    remainder = reference[1]
+    destination = r"(?:<[^<>\\\n]*>|[^\s<>()\\]+)"
+    title = r'''(?:"[^"\\\n]*"|'[^'\\\n]*'|\([^()\\\n]*\))'''
+    if re.fullmatch(destination + r"(?:[ \t]+" + title + r")?[ \t]*", remainder):
+        return "inactive"
+    # Quotes, escapes, and angle/parenthesis syntax can indicate an unfinished
+    # or unsupported destination/title. Do not guess about continuation lines.
+    if re.search(r'''[\\"'<>()]''', remainder):
+        return "ambiguous"
+    # An invalid definition with an ordinary inline import is plain prose,
+    # such as "[Note]: Use @AGENTS.md for rules." It cannot become a title.
+    return "active" if IMPORT_TOKEN.search(remainder) else "ambiguous"
+
+
 def _markdown_lines(text: str):
     """Classify supported contexts. Unknown structures never supply ownership."""
     fence = None
@@ -122,6 +142,21 @@ def _markdown_lines(text: str):
             if closing and closing[1][0] == fence.token[0] and len(closing[1]) >= len(fence.token):
                 fence = None
             yield MarkdownLine(offset, "", "inactive")
+            offset += len(raw)
+            continue
+        if comment:
+            # A comment body is opaque, including HTML, quotes, references,
+            # and apparent fences. Do not interpret it as structural Markdown.
+            ending = line.find("-->")
+            if ending < 0:
+                yield MarkdownLine(offset, "", "inactive")
+            else:
+                comment = False
+                paragraph = False
+                # Mixed syntax on a multiline closing delimiter is outside
+                # the supported subset. Do not hide meaningful suffix text.
+                classification = "ambiguous" if line[ending + 3:].strip() else "inactive"
+                yield MarkdownLine(offset, "", classification)
             offset += len(raw)
             continue
         # Container prefixes cannot make marker ownership top-level. They can
@@ -147,6 +182,7 @@ def _markdown_lines(text: str):
         if quote_depth != paragraph_quote_depth or new_item or not content.strip():
             paragraph = False
         paragraph_quote_depth = quote_depth
+        reference = _reference_classification(content)
         if inline_until > offset and inline_until >= offset + len(line):
             yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
         elif not comment and inline_until <= offset and content.startswith("    ") and not paragraph:
@@ -157,11 +193,11 @@ def _markdown_lines(text: str):
             fence = FenceContext(opening[1], quote_depth, list_indent)
             paragraph = False
             yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
-        elif not comment and inline_until <= offset and re.match(r"^ {0,3}\[[^\]\n]+\]:", content):
+        elif not comment and inline_until <= offset and reference in ("inactive", "ambiguous"):
             # A standalone link definition is not a paragraph. Its indented
             # successor can therefore be code. A definition-like continuation
             # inside prose is outside the supported subset.
-            ambiguous = ambiguous or paragraph
+            ambiguous = ambiguous or paragraph or reference == "ambiguous"
             paragraph = False
             yield MarkdownLine(offset, "", "ambiguous" if ambiguous else "inactive")
         elif not comment and inline_until <= offset and line.rstrip(" \t") in MARKERS:
@@ -270,12 +306,11 @@ def update_managed_block(text: str, block: str) -> tuple[str, bool]:
 
 def _classify_imports(text: str, relative_target: str = "AGENTS.md") -> Classification:
     """Return active, inactive, or ambiguous after inspecting the whole file."""
-    token = re.compile(r"(?<![\w@./\\])@((?:\.\.?/)*AGENTS\.md)(?![\w/\\-]|\.[\w.])")
     lines = list(_markdown_lines(text))
     if any(line.classification == "ambiguous" for line in lines):
         return "ambiguous"
     if any(posixpath.normpath(match[1]) == relative_target for line in lines
-           if line.classification == "active" for match in token.finditer(line.text)):
+           if line.classification == "active" for match in IMPORT_TOKEN.finditer(line.text)):
         return "active"
     return "inactive"
 

@@ -10,8 +10,8 @@ Public distribution remains `planned`. No official directory acceptance or publi
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `2e627f2` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 135 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `b8a5744` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 140 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, Markdown classification, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
 | runtime verified | [Local client record](docs/verification/v0.1.0.md) on older candidate `25143ea` and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run. These trials do not verify this candidate's new behavior |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
@@ -92,7 +92,15 @@ Simplify that markup before another setup run. A refusal does not report success
 
 Fences keep the containers and indentation of their opening line.
 Their contents cannot change list or paragraph state. A closing token permits at most three extra spaces inside those containers.
-Standalone link-reference definitions do not open paragraphs. Indented code after a definition cannot supply an active import.
+Setup recognizes complete single-line link definitions with supported destinations and optional simple quoted or parenthesized titles.
+Valid definitions do not open paragraphs. Indented code after a definition cannot supply an active import.
+Ordinary prose such as `[Note]: Use @AGENTS.md for rules.` retains its import.
+Incomplete or uncertain reference-like syntax causes refusal before writes.
+
+Closed comments are inactive examples, even when they contain HTML, nested quotes, or apparent fences.
+Comment bodies cannot change paragraph or container state.
+The supported multiline form closes on its own line. Additional text on that closing line causes refusal.
+Unclosed comments also cause refusal. Actual HTML outside comments remains unsupported.
 
 Managed markers must occupy separate lines at column one, outside code, comments, and list or quote examples.
 Setup refuses inactive, incomplete, duplicated, or overlapping markers before any write.
@@ -223,7 +231,7 @@ Directory submission is not runtime-verified. No file or local test proves publi
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed package candidate: local safety fixes based on `2e627f2`. This record does not identify a published release.
+Analyzed package candidate: local safety fixes based on `b8a5744`. This record does not identify a published release.
 The client trial record retains its older candidate revision `25143ea`.
 
 Last reviewed: 2026-10-14

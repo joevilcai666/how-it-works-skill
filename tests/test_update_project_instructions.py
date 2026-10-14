@@ -227,7 +227,8 @@ class ProjectSetupTests(unittest.TestCase):
         contexts = ("```md\n- sample\n    ```\n", "~~~md\n1. sample\n    ~~~\n",
                     "> ```md\n> - sample\n>     ```\n", "- ~~~md\n  1. sample\n      ~~~\n",
                     "> rules\n    @AGENTS.md\n", "> > rules\n    @AGENTS.md\n",
-                    "> > rules\n>     @AGENTS.md\n")
+                    "> > rules\n>     @AGENTS.md\n", "<!--\n<div>\n@AGENTS.md\n",
+                    "<!-- closed -->\n<div>\n@AGENTS.md\n</div>\n")
         for target in (self.claude, nested):
             for context in contexts:
                 with self.subTest(target=target.name, context=context):
@@ -251,6 +252,8 @@ class ProjectSetupTests(unittest.TestCase):
         for target in (self.claude, nested):
             relative = "@../AGENTS.md" if target == nested else "@AGENTS.md"
             for context in ("[rules]: /guide\n    " + relative + "\n",
+                            '[rules]: /guide "Shared rules"\n    ' + relative + "\n",
+                            "[rules]: </guide> (Shared rules)\n    " + relative + "\n",
                             "```md\n- sample\n" + relative + "\n   ```\n",
                             "~~~md\n1. sample\n" + relative + "\n   ~~~\n",
                             "> ```md\n> - sample\n> " + relative + "\n> ```\n",
@@ -265,6 +268,85 @@ class ProjectSetupTests(unittest.TestCase):
                     self.assertTrue(updated[target].endswith((IMPORT_START + "\n" + relative + "\n" + IMPORT_END + "\n").encode()))
                     self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
                     self.assertEqual({path: path.read_bytes() for path in updated}, updated)
+
+    def test_reference_lines_require_full_definition_syntax(self):
+        module = load_updater()
+        for text, expected in (
+            ("[Note]: Use @AGENTS.md for rules.\n", "active"),
+            ("[rules]: /guide invalid trailing words\n    @AGENTS.md\n", "ambiguous"),
+            ("[rules]: /guide\n    @AGENTS.md\n", "inactive"),
+            ('[rules]: /guide "Shared rules"\n    @AGENTS.md\n', "inactive"),
+            ("[rules]: </guide> 'Shared rules'\n    @AGENTS.md\n", "inactive"),
+            ("[rules]: /guide (Shared rules)\n    @AGENTS.md\n", "inactive"),
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(module._classify_imports(text), expected)
+
+    def test_ordinary_reference_like_prose_keeps_root_and_nested_imports(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        for target in (self.claude, nested):
+            with self.subTest(target=target.relative_to(self.root)):
+                self.claude.unlink(missing_ok=True)
+                nested.unlink(missing_ok=True)
+                relative = "@../AGENTS.md" if target == nested else "@AGENTS.md"
+                original = "[Note]: Use " + relative + " for rules.\n"
+                target.write_text(original)
+                for _ in range(2):
+                    self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+                    self.assertEqual(target.read_text(), original)
+                    self.assertNotIn(IMPORT_START, target.read_text())
+
+    def test_uncertain_reference_syntax_refuses_without_partial_writes(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        for target in (self.claude, nested):
+            for existing_agents in (False, True):
+                with self.subTest(target=target.relative_to(self.root), existing_agents=existing_agents):
+                    self.agents.unlink(missing_ok=True)
+                    if existing_agents:
+                        self.agents.write_text("# Preserve agent rules\n")
+                    self.claude.write_text("# Preserve root rules\n")
+                    nested.write_text("# Preserve nested rules\n")
+                    relative = "@../AGENTS.md" if target == nested else "@AGENTS.md"
+                    target.write_text("[rules]: /guide invalid trailing words\n    " + relative + "\n")
+                    before = {path: path.read_bytes() for path in (self.agents, self.claude, nested) if path.exists()}
+                    for _ in range(2):
+                        result = run_setup(self.root)
+                        self.assertEqual(result.returncode, 2, result.stderr)
+                        self.assertEqual(result.stdout, "")
+                        self.assertRegex(result.stderr.lower(), "ambiguous|unsupported")
+                        self.assertEqual(self.agents.exists(), existing_agents)
+                        self.assertEqual({path: path.read_bytes() for path in before}, before)
+
+    def test_closed_comment_body_precedes_markup_classification(self):
+        module = load_updater()
+        for text in ("<!--\n<div>\n@AGENTS.md\n</div>\n-->\n",
+                     "<!--\n> > @AGENTS.md\n-->\n",
+                     "<!--\n```md\n[Note]: Use @AGENTS.md\n-->\n"):
+            with self.subTest(text=text):
+                self.assertEqual(module._classify_imports(text), "inactive")
+        with self.assertRaises(module.UnsafeProjectError):
+            module._has_active_import("<!--\n<div>\n@AGENTS.md\n")
+        self.assertEqual(module._classify_imports("<!-- closed -->\n<div>\n@AGENTS.md\n</div>\n"), "ambiguous")
+
+    def test_closed_comment_examples_get_one_real_root_and_nested_import(self):
+        nested = self.root / ".claude" / "CLAUDE.md"
+        nested.parent.mkdir()
+        for target in (self.claude, nested):
+            relative = "@../AGENTS.md" if target == nested else "@AGENTS.md"
+            for original in ("<!--\n<div>\n" + relative + "\n</div>\n-->\n",
+                             "<!--\n> > " + relative + "\n-->\n"):
+                with self.subTest(target=target.relative_to(self.root), original=original):
+                    self.claude.unlink(missing_ok=True)
+                    nested.unlink(missing_ok=True)
+                    target.write_text(original)
+                    self.assertEqual(self.report(run_setup(self.root))["claude"], "updated")
+                    updated = target.read_bytes()
+                    self.assertTrue(updated.startswith(original.encode()))
+                    self.assertTrue(updated.endswith((IMPORT_START + "\n" + relative + "\n" + IMPORT_END + "\n").encode()))
+                    self.assertEqual(self.report(run_setup(self.root))["claude"], "unchanged")
+                    self.assertEqual(target.read_bytes(), updated)
 
     def test_inline_code_and_indented_code_imports_are_inactive(self):
         for original in ("Use `@AGENTS.md` as an example.\n", "``@./AGENTS.md``\n",
