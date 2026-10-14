@@ -45,6 +45,25 @@ def find_project_root(start: Path) -> Path:
     raise UnsafeProjectError("No Git root found. Supply --project-root explicitly.")
 
 
+def _container_content(line: str) -> str:
+    """Remove quote/list syntax without consuming indentation for code."""
+    content = line.expandtabs(4)
+    while True:
+        quote = re.match(r"^ {0,3}> ?", content)
+        if quote:
+            content = content[quote.end():]
+            continue
+        item = re.match(r"^ {0,3}(?:[-+*]|\d+[.)])( +)", content)
+        if item:
+            # Markdown list padding consumes one to four spaces. Five or
+            # more spaces leave indented code after one padding space.
+            spaces = item[1]
+            padding = len(spaces) if len(spaces) <= 4 else 1
+            content = content[item.start(1) + padding:]
+            continue
+        return content
+
+
 def _markdown_lines(text: str):
     """Yield offsets and active text. Refuse contexts that can hide new rules."""
     fence = None
@@ -55,8 +74,7 @@ def _markdown_lines(text: str):
         line = raw.rstrip("\r\n")
         # Container prefixes cannot make marker ownership top-level. They can
         # still introduce fences whose contents must not supply active imports.
-        content = re.sub(r"^ {0,3}(?:> ?)+", "", line)
-        content = re.sub(r"^ {0,3}(?:[-+*]|\d+[.)]) +", "", content)
+        content = _container_content(line)
         if inline_until > offset and inline_until >= offset + len(line):
             yield offset, ""
         elif fence is not None:
@@ -64,7 +82,7 @@ def _markdown_lines(text: str):
             if closing and closing[1][0] == fence[0] and len(closing[1]) >= len(fence):
                 fence = None
             yield offset, ""
-        elif not comment and inline_until <= offset and re.match(r"^(?: {4}|\t)", line):
+        elif not comment and inline_until <= offset and content.startswith("    "):
             yield offset, ""
         elif not comment and inline_until <= offset and re.match(r"^ {0,3}(`{3,}|~{3,})", content):
             fence = re.match(r"^ {0,3}(`{3,}|~{3,})", content)[1]

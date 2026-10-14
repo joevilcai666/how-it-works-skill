@@ -152,6 +152,38 @@ class PrivacyScanTests(unittest.TestCase):
         self.assertTrue(any(item["rule"] == "svg-invalid" and item["path"] == "vector.svg"
                             and item.get("commit") for item in findings))
 
+    def test_tag_only_credential_blobs_fail_history_without_exposure(self):
+        for index, annotated in enumerate((False, True)):
+            secret = "sk" + "-" + chr(ord("q") + index) * 32
+            blob = subprocess.run(["git", "hash-object", "-w", "--stdin"], cwd=self.root,
+                                  input=secret.encode(), capture_output=True, check=True).stdout.decode().strip()
+            tag = "synthetic-blob-" + str(index)
+            args = ("tag", "-a", tag, blob, "-m", "synthetic blob") if annotated else ("tag", tag, blob)
+            git(self.root, *args)
+            self.assertEqual(self.scan()[0].returncode, 0)
+            result, findings = self.scan(history=True)
+            with self.subTest(annotated=annotated):
+                self.assertEqual(result.returncode, 1)
+                self.assertTrue(any(item["rule"] == "credential" and item.get("commit") == blob
+                                    for item in findings))
+                self.assertNotIn(secret, result.stdout + result.stderr)
+                self.assertTrue(all(item["match"] == "[REDACTED]" for item in findings))
+
+    def test_blob_also_reachable_from_tag_does_not_duplicate_history_finding(self):
+        secret = "sk" + "-" + "t" * 32
+        (self.root / "fixture.md").write_text(secret)
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-qm", "synthetic fixture")
+        blob = git(self.root, "rev-parse", "HEAD:fixture.md").stdout.decode().strip()
+        git(self.root, "tag", "synthetic-blob", blob)
+        (self.root / "fixture.md").unlink()
+        git(self.root, "add", "-u")
+        git(self.root, "commit", "-qm", "remove fixture")
+        result, findings = self.scan(history=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len([item for item in findings if item["rule"] == "credential"]), 1)
+        self.assertNotIn(secret, result.stdout + result.stderr)
+
     def test_svg_additional_resource_channels_fail_current_and_history(self):
         url = "https" + "://" + "example.invalid" + "/asset"
         cases = [

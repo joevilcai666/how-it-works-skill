@@ -10,8 +10,8 @@ Public distribution remains `planned`. No official directory acceptance or publi
 
 | Evidence level | Current evidence | What this proves | Limit |
 | --- | --- | --- | --- |
-| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `53b21d6` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
-| test verified | 123 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, historical filenames, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
+| code verified | [Main workflow](skills/how-it-works/SKILL.md), [updater](skills/how-it-works/scripts/update_project_instructions.py), and [privacy scanner](scripts/privacy_scan.py), current local candidate based on `fb35ec1` | The package defines the workflow and implements local instruction setup and release checks | Instructions do not guarantee an agent follows every rule |
+| test verified | 127 root tests and 9 synthetic demo tests passed locally on this candidate, 2026-10-14, Python 3.9.6, macOS arm64 | Local cases check refusal before writes, both Claude instruction locations, historical filenames, tag-only blobs, SVG resources, and isolated skill assets | These results cover local scenarios. Public installation remains unverified |
 | runtime verified | [Local client record](docs/verification/v0.1.0.md) on older candidate `25143ea` and [synthetic agent comparison](evals/README.md), 2026-10-14 | Codex CLI loaded both skills, created managed instructions, and saved a synthetic document. The generic installer copied the main skill | Codex met 6 of 7 rubric checks. Claude discovered both skills, but HTTP 401 prevented a document run. These trials do not verify this candidate's new behavior |
 | user accepted | No acceptance record | Nothing yet | A product owner must review a real project explanation before this level applies |
 
@@ -80,6 +80,7 @@ The updater checks root `CLAUDE.md` and `.claude/CLAUDE.md` when they exist.
 Root instructions use `@AGENTS.md`. Nested instructions use `@../AGENTS.md`.
 If both files exist, setup checks and updates both. It reports `absent` only when neither exists.
 It preserves unrelated text and recognizes equivalent imports in prose and lists, outside code and comments.
+Indented code inside list or quote containers cannot supply active imports.
 
 Managed markers must occupy separate lines at column one, outside code, comments, and list or quote examples.
 Setup refuses inactive, incomplete, duplicated, or overlapping markers before any write.
@@ -165,7 +166,8 @@ It prints a skip when a validator is absent. A skip is not a validation pass.
 The privacy scanner checks current filenames and file contents, including tracked files that ignore rules otherwise exclude.
 The history check inspects every reachable commit tree. It checks deleted and renamed filenames, including multiple names for one blob.
 Git separates these names with NUL bytes, so spaces, tabs, and line breaks cannot divide a filename.
-Each finding reports a redacted path, rule, line, and a commit that contains the entry.
+Named findings report a redacted path, rule, line, and a commit that contains the entry.
+The scanner also checks blobs reachable only through tags. It uses the blob object identifier when no containing commit exists.
 
 SVG checks cover resource references, inherited XML bases, CSS URL functions, CSS string imports, and XML stylesheet instructions.
 They also check resource attributes inside `foreignObject`, including namespaced attributes and resource lists.
@@ -209,7 +211,7 @@ Directory submission is not runtime-verified. No file or local test proves publi
 
 Sources: [workflow](skills/how-it-works/SKILL.md), [updater tests](tests/test_update_project_instructions.py), [evaluation record](evals/README.md), [package checker](scripts/check_repo.py).
 
-Analyzed package candidate: local safety fixes based on `53b21d6`. This record does not identify a published release.
+Analyzed package candidate: local safety fixes based on `fb35ec1`. This record does not identify a published release.
 The client trial record retains its older candidate revision `25143ea`.
 
 Last reviewed: 2026-10-14

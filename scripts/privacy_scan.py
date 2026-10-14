@@ -319,6 +319,17 @@ def scan_history(root):
                 if object_id not in blobs:
                     blobs[object_id] = git(root, "cat-file", "blob", object_id.decode("ascii"))
                 result.extend(scan_bytes(blobs[object_id], name, commit))
+    # Tags can point directly to blobs or trees without a containing commit.
+    # Request only object IDs, so this fallback never parses filenames by line.
+    # Blobs already checked through named tree entries need no extra finding.
+    for object_id in git(root, "rev-list", "--objects", "--all", "--no-object-names").splitlines():
+        if object_id in blobs:
+            continue
+        identifier = object_id.decode("ascii")
+        if git(root, "cat-file", "-t", identifier).strip() == b"blob":
+            data = git(root, "cat-file", "blob", identifier)
+            result.extend(scan_bytes(data, "[history blob]", identifier))
+            blobs[object_id] = data
     return result
 
 
