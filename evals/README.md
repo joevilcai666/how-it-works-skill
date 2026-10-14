@@ -40,8 +40,8 @@ Its fictional runtime record does not prove actual execution.
 
 ## Fresh-agent procedure
 
-Fresh-agent results remain pending for the controller.
-Do not fabricate agent outputs or copy the expected document as an agent result.
+The controller ran two new agents sequentially with the same synthetic bootstrap request.
+The saved outputs below are their generated documents, not copies of the expected control.
 
 Run one new agent with the main skill disabled. Run another new agent with the main skill enabled.
 Use the same bootstrap request from `cases.json` and the same fixture for both agents.
@@ -54,10 +54,40 @@ Run the rubric against each document. Record the command, client, model family, 
 If a client or model family is unknown, write `unknown`. Do not infer that value.
 Save no hidden reasoning, private transcripts, real identifiers, secrets, or home-directory paths.
 
-| Run | Client | Model family | Date | Result |
+| Run and main skill state | Client | Model family | Date | Observed result |
 | --- | --- | --- | --- | --- |
-| Baseline fresh agent, main skill disabled | Pending | Pending | Pending | Pending |
-| Fresh agent, main skill enabled | Pending | Pending | Pending | Pending |
+| [Baseline fresh agent](runs/0.1.0/baseline/HOW_IT_WORKS.md), disabled | Codex collaboration subagent | gpt-6.1-sol | 2026-10-14 | Fail, exit 1, 4 of 7 checks passed |
+| [Fresh agent](runs/0.1.0/skilled/HOW_IT_WORKS.md), enabled | Codex collaboration subagent | gpt-6.1-sol | 2026-10-14 | Fail, exit 1, 6 of 7 checks passed |
+
+Exact baseline command from the package root:
+
+```bash
+python3 evals/run_rubric.py --case bootstrap-agent-product --document evals/runs/0.1.0/baseline/HOW_IT_WORKS.md
+```
+
+The baseline fails the headings, evidence-labels, and mermaid-count checks.
+Its headings omit limits and sources. Its prose describes several evidence types, but does not match the code, test, and runtime labels.
+It contains one Mermaid block and twelve valid local links.
+Its output commit is `fffc2fd515f82e3288c4c0d5da234ca896dc36a2`.
+
+Exact skill-enabled command from the package root:
+
+```bash
+python3 evals/run_rubric.py --case bootstrap-agent-product --document evals/runs/0.1.0/skilled/HOW_IT_WORKS.md
+```
+
+The skill-enabled output fails only the mermaid-count check.
+It contains two Mermaid blocks and twenty-one valid local links.
+It passes the heading, phrase, evidence-label, local-link, forbidden-phrase, and closed-fence checks.
+Its output commit is `ee7567ec5c5fa1b71ef10d6cad33f30b0bc9841d`.
+The agent ran instruction setup in an isolated temporary fixture copy.
+It changed no repository fixture or root instructions.
+
+This case requires three diagrams. The main skill permits two to four diagrams.
+The shared request does not explicitly require three diagrams.
+Thus the skill-enabled output meets the skill's diagram-count range but fails the stricter case rule.
+These recorded scores use the original rubric. Neither output nor scoring rules changed to improve a result.
+The two runs show one model family in one client. They do not prove cross-client compatibility or human acceptance.
 
 ## Deterministic evidence record
 
@@ -73,4 +103,5 @@ The task report records the exact implementation commit and full-suite result.
 | `python3 -m unittest tests.test_rubric -v` after implementation | Exit 0, 13 tests passed |
 | `python3 -m unittest discover -s demo/acorn-tasks/tests -v` after implementation | Exit 0, 9 tests passed |
 
-Fresh-agent evaluation is a separate step and remains pending.
+Fresh-agent evaluation is complete for these two synthetic runs.
+Both outputs fail the original bootstrap rubric for the reasons above.
