@@ -2,29 +2,19 @@
 
 [简体中文](README.zh-CN.md)
 
-Your codebase works. Your product explanation goes stale.
+The code keeps changing. The product truth gets blurrier.
 
+When implementation is a black box, every iteration makes the current system harder to explain.
 This skill turns the current repository into a living, visual product explanation.
 Give a product owner one place to see what the product does, how a request travels, and what the evidence proves.
 
-```mermaid
-flowchart LR
-  subgraph Before
-    C[Code] --> Q[What does the product do now?]
-    T[Tests] --> Q
-    N[Scattered notes] --> Q
-  end
-  Q --> S[How It Works]
-  subgraph After
-    S --> D[One current product map]
-    D --> E[Evidence and limits]
-    D --> I[Where to investigate]
-  end
-```
+![The code keeps changing while the current product truth becomes harder to see](assets/readme-problem-en.jpg)
 
 | Understand current behavior | Separate proof from assumption | Know where to investigate |
 | --- | --- | --- |
 | Follow a user request from input to result. | Distinguish code, local tests, real runtime, and user acceptance. | Use symptoms to find the responsible module and next check. |
+
+![How It Works turns repository evidence into a product map that stays current](assets/readme-workflow-en.jpg)
 
 ## Five-minute first use
 

@@ -35,6 +35,10 @@ class CheckRepoTests(unittest.TestCase):
         tests.mkdir()
         (tests / "test_smoke.py").write_text("import unittest\nclass Smoke(unittest.TestCase):\n    def test_ok(self):\n        self.assertTrue(True)\n")
         (self.root / "README.md").write_text("# Package\n```mermaid\nflowchart LR\n A --> B\n```\n")
+        (self.root / "HOW_IT_WORKS.md").write_text(
+            "# How it works\n```mermaid\nflowchart LR\n A --> B\n```\n"
+            "```mermaid\nsequenceDiagram\n A->>B: Request\n```\n"
+        )
 
     def check(self):
         self.assertTrue(CHECK.is_file(), "Missing check_repo.py")
@@ -64,9 +68,9 @@ class CheckRepoTests(unittest.TestCase):
         self.assertIn("missing.md", result.stdout)
 
     def test_unbalanced_mermaid_fence_and_missing_count_fail(self):
-        for text in ("# Package\n```mermaid\nflowchart LR\n", "# Package\n"):
+        for text in ("# How it works\n```mermaid\nflowchart LR\n", "# How it works\n"):
             with self.subTest(text=text):
-                (self.root / "README.md").write_text(text)
+                (self.root / "HOW_IT_WORKS.md").write_text(text)
                 result = self.check()
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("Mermaid", result.stdout)

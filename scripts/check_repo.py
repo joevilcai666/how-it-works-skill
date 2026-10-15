@@ -113,7 +113,6 @@ def markdown_checks(files):
     links = []
     diagrams = []
     counts = {
-        "README.md": (1, None),
         "HOW_IT_WORKS.md": (2, 4),
         "demo/expected/HOW_IT_WORKS.md": (3, 3),
         # Preserve observed outputs. Evaluation scores remain in the rubric.

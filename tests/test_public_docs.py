@@ -17,20 +17,27 @@ class PublicDocsTests(unittest.TestCase):
         return path.read_text(encoding="utf-8")
 
     def test_first_screen_explains_problem_solution_and_outcomes(self):
-        for name, problem, solution, outcomes, first_use in (
-            ("README.md", "Your codebase works. Your product explanation goes stale.",
-             "living, visual product explanation", ("current behavior", "proof", "investigate"), "Five-minute"),
-            ("README.zh-CN.md", "代码在运行，产品说明却逐渐过时。",
-             "持续更新的可视化产品说明", ("当前行为", "证据", "排查"), "五分钟"),
+        for name, problem, solution, outcomes, images, first_use in (
+            ("README.md", "The code keeps changing. The product truth gets blurrier.",
+             "living, visual product explanation", ("current behavior", "proof", "investigate"),
+             ("assets/readme-problem-en.jpg", "assets/readme-workflow-en.jpg"), "Five-minute"),
+            ("README.zh-CN.md", "代码一直在变，产品真相却越来越模糊。",
+             "持续更新的可视化产品说明", ("当前行为", "证据", "排查"),
+             ("assets/readme-problem-zh-CN.jpg", "assets/readme-workflow-zh-CN.jpg"), "五分钟"),
         ):
             with self.subTest(name=name):
                 text = self.read(name)
                 first = text.index("\n## ")
                 self.assertIn(problem, text[:first])
                 self.assertIn(solution, text[:first])
-                diagram = re.search(r"```mermaid\n(.*?)\n```", text[:first], re.S)
-                self.assertIsNotNone(diagram)
-                self.assertRegex(diagram[1], r"flowchart\s+LR")
+                self.assertNotIn("```mermaid", text[:first])
+                for image in images:
+                    self.assertIn("](" + image + ")", text[:first])
+                    path = ROOT / image
+                    self.assertTrue(path.is_file(), image + " must exist")
+                    data = path.read_bytes()
+                    self.assertEqual(data[:3], bytes((255, 216, 255)))
+                    self.assertLess(len(data), 512 * 1024)
                 for outcome in outcomes:
                     self.assertIn(outcome, text[:first])
                 self.assertIn(first_use, text[first:text.index("\n## ", first + 1)])
